@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "ClearCore.h"
+#include "stack-debug.h"
 
 // Global count variable
 unsigned long count = 0;
@@ -34,6 +35,15 @@ void loop() {
         Serial.print(count);
         Serial.println(" times already!");
     }
+    
     // Increment count each loop iteration
     count++;
+    
+#ifdef STACK_MONITORING_ENABLED
+    // Periodically check and report stack usage
+    if (count % 10 == 0) {
+        checkStackUsage();
+        reportStackUsage();
+    }
+#endif
 }
