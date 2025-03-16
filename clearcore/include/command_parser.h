@@ -9,6 +9,15 @@
 
 #pragma once
 
+// Fix for Arduino min/max macro conflicts with C++ STL
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 #include <Arduino.h>
 #include <ClearCore.h>
 

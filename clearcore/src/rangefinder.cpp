@@ -9,14 +9,10 @@
 // Initialize static constants
 const byte Rangefinder::CONT_MEAS_CMD[4] = {0x80, 0x06, 0x03, 0x77};
 
-Rangefinder::Rangefinder(Stream& serial, int relayPin)
-    : _serial(serial), _relayPin(relayPin), _verbose(false), _lastDistance(-1.0) {}
+Rangefinder::Rangefinder(SerialDevices& serialDevices)
+    : _serialDevices(serialDevices), _verbose(false), _lastDistance(-1.0) {}
 
 void Rangefinder::init() {
-    // Configure relay pin
-    pinMode(_relayPin, OUTPUT);
-    powerOff();  // Start with sensor powered off
-
 #ifdef DEBUG
     Serial.println("Rangefinder initialized");
 #endif
@@ -25,19 +21,18 @@ void Rangefinder::init() {
 float Rangefinder::takeMeasurement() {
     log("=== Starting Measurement ===");
 
-    // Power on and wait for boot
-    powerOn();
-    delay(1000);
-    log("Sensor boot delay complete");
+    // Switch to rangefinder device
+    _serialDevices.switchToDevice(SerialDevices::RANGEFINDER);
+    log("Switched to rangefinder");
 
     // Flush buffer
-    while (_serial.available()) {
-        _serial.read();
+    while (Serial1.available()) {
+        Serial1.read();
     }
 
     // Send measurement command
     log("Sending measurement command");
-    _serial.write(CONT_MEAS_CMD, sizeof(CONT_MEAS_CMD));
+    Serial1.write(CONT_MEAS_CMD, sizeof(CONT_MEAS_CMD));
 
     // Wait for response
     float distance = -1.0;
@@ -45,11 +40,11 @@ float Rangefinder::takeMeasurement() {
     log("Waiting for response");
 
     while (millis() - startTime < 2000) {
-        if (_serial.available() >= 11) {
+        if (Serial1.available() >= 11) {
             // Read frame
             byte frame[11];
             for (int i = 0; i < 11; i++) {
-                frame[i] = _serial.read();
+                frame[i] = Serial1.read();
             }
 
 #ifdef DEBUG
@@ -71,9 +66,6 @@ float Rangefinder::takeMeasurement() {
         delay(10);
     }
 
-    // Power off sensor
-    powerOff();
-
     if (distance < 0) {
         log("Measurement failed");
     } else {
@@ -92,16 +84,6 @@ void Rangefinder::setVerbose(bool verbose) {
 
 float Rangefinder::getLastDistance() const {
     return _lastDistance;
-}
-
-void Rangefinder::powerOn() {
-    log("Powering sensor ON");
-    digitalWrite(_relayPin, HIGH);
-}
-
-void Rangefinder::powerOff() {
-    log("Powering sensor OFF");
-    digitalWrite(_relayPin, LOW);
 }
 
 float Rangefinder::processFrame(const byte* frame) {

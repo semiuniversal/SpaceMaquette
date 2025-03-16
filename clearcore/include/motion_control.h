@@ -6,6 +6,7 @@
 #include <Servo.h>  // Include the Servo library for tilt control
 
 #include "ClearCore.h"
+#include "tilt_servo.h"
 
 // Define default velocity and acceleration limits
 #define DEFAULT_VELOCITY_LIMIT     10000   // pulses per sec
@@ -50,8 +51,8 @@ private:
     int _tiltMaxAngle;
     int _tiltHomeAngle;
 
-    // Servo instance for tilt control
-    Servo _tiltServo;
+    // Pointer to tilt servo controller for tilt control
+    TiltServo *_tiltServo;
 
     // Helper function to check HLFB status
     bool waitForHlfb(MotorDriver &motor, uint32_t timeoutMs = 5000);
@@ -103,7 +104,14 @@ public:
     bool isHomed();
 
     // Servo-specific functions
-    bool setTiltAngle(int angle);
+    bool MotionControl::setTiltAngle(int angle) {
+        if (!_tiltEnabled || !_tiltServo) {
+            return false;
+        }
+
+        return _tiltServo->setAngle(angle);
+    }
+
     bool setPanAngle(int32_t angle);
 
     // Set tilt servo angle limits

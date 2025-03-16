@@ -20,19 +20,23 @@
 #include "../include/emergency.h"
 #include "../include/motion_control.h"
 #include "../include/rangefinder.h"
+#include "../include/serial_devices.h"
+#include "../include/tilt_servo.h"
 
 // Enable debug output to USB serial
 #define DEBUG 1
 
 // Pin definitions
-#define ESTOP_PIN             DI6
-#define RANGEFINDER_RELAY_PIN IO0
-#define TILT_SERVO_PIN        IO1
+#define ESTOP_PIN      DI6
+#define RELAY_PIN      IO0
+#define TILT_SERVO_PIN IO1  // This is passed to the Arduino but not used directly on ClearCore
 
 // Create system objects
 CommandParser parser(Serial0);  // Using Serial0 for COM0 (host communication)
-MotionControl motion;
-Rangefinder rangefinder(Serial1, RANGEFINDER_RELAY_PIN);  // Using Serial1 for COM1 (rangefinder)
+SerialDevices serialDevices(RELAY_PIN);
+Rangefinder rangefinder(serialDevices);
+TiltServo tiltServo(serialDevices);
+MotionControl motion;  // Standard initialization, tilt servo handled separately
 EmergencyStop estop(ESTOP_PIN);
 ConfigurationManager config("/maquette_config.txt");
 CommandHandler cmdHandler(parser, motion, rangefinder, estop, config);
@@ -48,13 +52,13 @@ void setup() {
     // Initialize host communication serial port (COM0)
     Serial0.begin(115200);
 
-    // Initialize rangefinder serial port (COM1)
-    // Check if we need a method to set TTL mode
-    Serial1.begin(9600);
+    // Initialize serial devices module (controls COM1 access)
+    serialDevices.init();
+    Serial1.begin(9600);  // Initialize COM1 for both rangefinder and tilt servo
 
     // Initialize system components
     parser.init();
-    motion.init();
+    motion.init();  // Standard initialization without tilt servo
     rangefinder.init();
     estop.init();
 
@@ -65,6 +69,18 @@ void setup() {
         Serial.println("Configuration loaded successfully");
     } else {
         Serial.println("Using default configuration");
+    }
+#endif
+
+    // Initialize tilt servo with configuration parameters
+    bool tiltInitSuccess =
+        tiltServo.init(config.getInt("tilt_min", 45), config.getInt("tilt_max", 135));
+
+#ifdef DEBUG
+    if (tiltInitSuccess) {
+        Serial.println("Tilt servo initialized successfully");
+    } else {
+        Serial.println("WARNING: Failed to initialize tilt servo");
     }
 #endif
 
@@ -103,6 +119,11 @@ void loop() {
     if (motion.isMoving() && !estop.isActive()) {
         motion.update();
     }
+
+// Check stack usage periodically
+#ifdef STACK_MONITORING_ENABLED
+    checkStackUsage();
+#endif
 
     // Small delay to prevent CPU hogging
     delay(1);

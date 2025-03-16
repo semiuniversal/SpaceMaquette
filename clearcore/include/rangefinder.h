@@ -2,7 +2,7 @@
  * Space Maquette - Rangefinder Module
  *
  * Interfaces with the SEN0366 infrared laser distance sensor.
- * Controls power via relay and handles communication protocol.
+ * Uses the shared serial devices module for communication.
  */
 
 #pragma once
@@ -10,10 +10,12 @@
 #include <Arduino.h>
 #include <ClearCore.h>
 
+#include "serial_devices.h"
+
 class Rangefinder {
 public:
     // Constructor
-    Rangefinder(Stream& serial, int relayPin);
+    Rangefinder(SerialDevices& serialDevices);
 
     // Initialize the rangefinder
     void init();
@@ -31,11 +33,8 @@ public:
     float getLastDistance() const;
 
 private:
-    // Serial port connected to rangefinder
-    Stream& _serial;
-
-    // Pin controlling relay power
-    int _relayPin;
+    // Reference to serial devices module
+    SerialDevices& _serialDevices;
 
     // Verbose mode flag
     bool _verbose;
@@ -45,12 +44,6 @@ private:
 
     // Command for continuous measurement
     static const byte CONT_MEAS_CMD[4];
-
-    // Powers on the sensor
-    void powerOn();
-
-    // Powers off the sensor
-    void powerOff();
 
     // Processes a received frame
     // Returns distance in meters, or negative value on error
