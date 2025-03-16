@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../../.platformio/packages/framework-arduino-samd-clearcore/Teknic/libClearCore"
+		},
+		{
+			"path": "../../../../.platformio/packages/framework-arduino-samd-clearcore/libraries"
+		}
+	],
+	"settings": {}
+}

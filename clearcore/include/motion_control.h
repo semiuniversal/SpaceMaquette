@@ -3,7 +3,6 @@
 #define MOTION_CONTROL_H
 
 #include <Arduino.h>
-#include <Servo.h>  // Include the Servo library for tilt control
 
 #include "ClearCore.h"
 #include "tilt_servo.h"
