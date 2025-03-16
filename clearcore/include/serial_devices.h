@@ -1,63 +1,46 @@
-/**
- * Space Maquette - Serial Devices Module
- *
- * Manages shared access to the COM1 serial port via relay control.
- * Provides communication interfaces for the rangefinder and tilt servo.
- */
-
-#pragma once
+#ifndef SERIAL_DEVICES_H
+#define SERIAL_DEVICES_H
 
 #include <Arduino.h>
-#include <ClearCore.h>
 
-// Device types that can be connected to COM1
-enum Device { RANGEFINDER, TILT_SERVO };
+// Define device types as enum outside the class for broader access
+enum DeviceType { DEVICE_NONE = 0, DEVICE_RANGEFINDER = 1, DEVICE_TILT_SERVO = 2 };
 
 class SerialDevices {
 public:
-    // Constructor
-    SerialDevices(int relayPin);
+    // Bring DeviceType enum into class scope for convenience
+    static const DeviceType NONE = DEVICE_NONE;
+    static const DeviceType RANGEFINDER = DEVICE_RANGEFINDER;
+    static const DeviceType TILT_SERVO = DEVICE_TILT_SERVO;
 
-    // Initialize the module
-    void init();
+    SerialDevices(HardwareSerial &serial, int relayPin);
+    ~SerialDevices();
+
+    // Initialize the serial device manager
+    void begin(unsigned long baudRate);
 
     // Switch to a specific device
-    bool switchToDevice(Device device);
+    bool switchToDevice(DeviceType device);
 
-    // Get currently active device
-    Device getCurrentDevice() const;
+    // Get current active device
+    DeviceType getCurrentDevice() const;
 
-    // Send a command to the current device
-    bool sendCommand(const char* command);
+    // Check if a device is currently active
+    bool isDeviceActive(DeviceType device) const;
 
-    // Read a response with timeout
-    String readResponse(unsigned long timeoutMs = 1000);
-
-    // Wait for a response to include expected text (with timeout)
-    bool waitForResponse(const char* expectedText, unsigned long timeoutMs = 1000);
-
-    // Flush the serial buffer
-    void flushBuffer();
+    // Serial communication methods
+    size_t write(uint8_t data);
+    size_t write(const uint8_t *buffer, size_t size);
+    int available();
+    int read();
+    int peek();
+    void flush();
 
 private:
-    // Relay control pin
+    HardwareSerial &_serial;
     int _relayPin;
-
-    // Currently active device
-    Device _currentDevice;
-
-    // Settings for each device
-    struct DeviceSettings {
-        bool relayState;  // Relay state for this device (HIGH/LOW)
-        int baudRate;     // Baud rate for this device
-    };
-
-    // Settings for each device type
-    DeviceSettings _deviceSettings[2] = {
-        {HIGH, 9600},  // RANGEFINDER: Relay HIGH, 9600 baud
-        {LOW, 9600}    // TILT_SERVO: Relay LOW, 9600 baud
-    };
-
-    // Apply settings for the specified device
-    void applyDeviceSettings(Device device);
+    DeviceType _currentDevice;
+    unsigned long _baudRate;
 };
+
+#endif  // SERIAL_DEVICES_H

@@ -1,55 +1,53 @@
-/**
- * Space Maquette - Tilt Servo Module
- *
- * Controls a tilt servo via communication with a secondary Arduino.
- * Uses the shared serial devices module for communication.
- */
-
-#pragma once
+#ifndef TILT_SERVO_H
+#define TILT_SERVO_H
 
 #include <Arduino.h>
-#include <ClearCore.h>
 
 #include "serial_devices.h"
 
 class TiltServo {
 public:
-    // Constructor
-    TiltServo(SerialDevices& serialDevices);
+    TiltServo(SerialDevices &serialDevices, float minAngle = 0.0f, float maxAngle = 180.0f);
+    ~TiltServo();
 
     // Initialize the tilt servo
-    bool init(int minAngle = 0, int maxAngle = 180);
+    void begin();
 
-    // Set tilt angle
-    bool setAngle(int angle);
+    // Set the tilt angle (constrained to min/max)
+    bool setAngle(float angle);
 
-    // Get current angle
-    int getCurrentAngle() const;
+    // Get the current angle
+    float getCurrentAngle() const;
+
+    // Get the target angle
+    float getTargetAngle() const;
 
     // Set min/max angle limits
-    void setLimits(int minAngle, int maxAngle);
+    void setLimits(float minAngle, float maxAngle);
 
-    // Check if initialized
-    bool isInitialized() const;
+    // Enable/disable debug output
+    void setDebug(bool enable);
 
 private:
-    // Reference to serial devices module
-    SerialDevices& _serialDevices;
+    // Wait for acknowledgment from Arduino
+    bool waitForAck();
 
-    // Initialization state
-    bool _initialized;
+    // Debug logging
+    void log(const String &message);
 
-    // Current angle
-    int _currentAngle;
+    // Reference to the serial device manager
+    SerialDevices &_serialDevices;
 
-    // Min/max angle limits
-    int _minAngle;
-    int _maxAngle;
+    // Angle limits
+    float _minAngle;
+    float _maxAngle;
 
-    // Send a command and wait for response
-    bool sendCommandWithResponse(const char* command, const char* expectedResponse,
-                                 unsigned long timeoutMs = 1000);
+    // Current and target angles
+    float _currentAngle;
+    float _targetAngle;
 
-    // Format to proper Arduino command protocol
-    String formatCommand(const char* command, int param = -1);
+    // Debug flag
+    bool _debugEnabled;
 };
+
+#endif  // TILT_SERVO_H

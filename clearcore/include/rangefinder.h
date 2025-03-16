@@ -1,54 +1,42 @@
-/**
- * Space Maquette - Rangefinder Module
- *
- * Interfaces with the SEN0366 infrared laser distance sensor.
- * Uses the shared serial devices module for communication.
- */
-
-#pragma once
+#ifndef RANGEFINDER_H
+#define RANGEFINDER_H
 
 #include <Arduino.h>
-#include <ClearCore.h>
 
 #include "serial_devices.h"
 
 class Rangefinder {
 public:
-    // Constructor
-    Rangefinder(SerialDevices& serialDevices);
+    Rangefinder(SerialDevices &serialDevices);
+    ~Rangefinder();
 
     // Initialize the rangefinder
-    void init();
+    void begin();
 
-    // Take a single measurement
-    // Returns distance in meters, or negative value on error:
-    // -1: Communication error
-    // -2: "ERR" response (out of range)
+    // Take a distance measurement
     float takeMeasurement();
 
-    // Set verbose mode for debugging
-    void setVerbose(bool verbose);
+    // Get the last successful measurement
+    float getLastMeasurement() const;
 
-    // Get last measured distance
-    float getLastDistance() const;
+    // Enable/disable debug output
+    void setDebug(bool enable);
 
 private:
-    // Reference to serial devices module
-    SerialDevices& _serialDevices;
-
-    // Verbose mode flag
-    bool _verbose;
-
-    // Last measured distance
-    float _lastDistance;
-
-    // Command for continuous measurement
-    static const byte CONT_MEAS_CMD[4];
-
-    // Processes a received frame
-    // Returns distance in meters, or negative value on error
-    float processFrame(const byte* frame);
+    // Parse distance from sensor response
+    float parseDistance(const char *buffer);
 
     // Debug logging
-    void log(const char* message);
+    void log(const String &message);
+
+    // Reference to the serial device manager
+    SerialDevices &_serialDevices;
+
+    // Last valid measurement
+    float _lastMeasurement;
+
+    // Debug flag
+    bool _debugEnabled;
 };
+
+#endif  // RANGEFINDER_H

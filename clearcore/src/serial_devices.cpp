@@ -1,145 +1,88 @@
-/**
- * Space Maquette - Serial Devices Module Implementation
- */
+#include "serial_devices.h"
 
-#include "../include/serial_devices.h"
-
-SerialDevices::SerialDevices(int relayPin) : _relayPin(relayPin), _currentDevice(RANGEFINDER) {}
-
-void SerialDevices::init() {
-    // Configure relay pin as output
+// Constructor
+SerialDevices::SerialDevices(HardwareSerial &serial, int relayPin)
+    : _serial(serial), _relayPin(relayPin), _currentDevice(NONE), _baudRate(0) {
+    // Initialize relay pin as output
     pinMode(_relayPin, OUTPUT);
-
-    // Default to rangefinder device
-    switchToDevice(RANGEFINDER);
-
-#ifdef DEBUG
-    Serial.println("Serial devices module initialized");
-#endif
+    // Default state (neither device active)
+    digitalWrite(_relayPin, LOW);
 }
 
-bool SerialDevices::switchToDevice(Device device) {
-    // Don't switch if already on the requested device
+// Destructor
+SerialDevices::~SerialDevices() {
+    // Ensure both devices are inactive when this object is destroyed
+    _currentDevice = NONE;
+    digitalWrite(_relayPin, LOW);
+}
+
+// Initialize the serial device manager
+void SerialDevices::begin(unsigned long baudRate) {
+    _baudRate = baudRate;
+    _serial.begin(_baudRate);
+    _currentDevice = NONE;
+    // Ensure both devices are inactive initially
+    digitalWrite(_relayPin, LOW);
+}
+
+// Switch to a specific device
+bool SerialDevices::switchToDevice(DeviceType device) {
+    // If already on the requested device, do nothing
     if (_currentDevice == device) {
         return true;
     }
 
-    // Apply settings for the requested device
-    applyDeviceSettings(device);
+    // Set relay state based on requested device
+    switch (device) {
+        case NONE:
+            digitalWrite(_relayPin, LOW);  // Neither device active
+            break;
+        case RANGEFINDER:
+            digitalWrite(_relayPin, LOW);  // Activate rangefinder (relay off)
+            break;
+        case TILT_SERVO:
+            digitalWrite(_relayPin, HIGH);  // Activate tilt servo (relay on)
+            break;
+        default:
+            return false;  // Invalid device
+    }
 
     // Update current device
     _currentDevice = device;
-
-    // Give time for the relay to settle and device to initialize
-    delay(50);
-
-    // Clear any pending data
-    flushBuffer();
-
     return true;
 }
 
-Device SerialDevices::getCurrentDevice() const {
+// Get current active device
+DeviceType SerialDevices::getCurrentDevice() const {
     return _currentDevice;
 }
 
-bool SerialDevices::sendCommand(const char* command) {
-    Serial1.flush();  // Ensure any previous transmission is complete
-    Serial1.println(command);
-
-#ifdef DEBUG
-    Serial.print("Serial device command: ");
-    Serial.println(command);
-#endif
-
-    return true;
+// Check if a device is currently active
+bool SerialDevices::isDeviceActive(DeviceType device) const {
+    return _currentDevice == device;
 }
 
-String SerialDevices::readResponse(unsigned long timeoutMs) {
-    String response = "";
-    unsigned long startTime = millis();
-
-    // Read until timeout or newline
-    while (millis() - startTime < timeoutMs) {
-        if (Serial1.available()) {
-            char c = Serial1.read();
-
-            // Check for end of response
-            if (c == '\n' || c == '\r') {
-                if (response.length() > 0) {
-                    break;  // Exit if we have data and hit a newline
-                }
-                // Otherwise ignore leading newlines/carriage returns
-            } else {
-                response += c;  // Add character to response
-            }
-        }
-        delay(1);  // Small delay to prevent CPU hogging
-    }
-
-#ifdef DEBUG
-    if (response.length() > 0) {
-        Serial.print("Serial device response: ");
-        Serial.println(response);
-    } else if (millis() - startTime >= timeoutMs) {
-        Serial.println("Serial device response timeout");
-    }
-#endif
-
-    return response;
+// Serial communication methods - these simply pass through to the HardwareSerial object
+size_t SerialDevices::write(uint8_t data) {
+    return _serial.write(data);
 }
 
-bool SerialDevices::waitForResponse(const char* expectedText, unsigned long timeoutMs) {
-    unsigned long startTime = millis();
-    String buffer = "";
-
-    // Read until timeout or expected text found
-    while (millis() - startTime < timeoutMs) {
-        if (Serial1.available()) {
-            char c = Serial1.read();
-            buffer += c;
-
-            // Check if buffer contains expected text
-            if (buffer.indexOf(expectedText) >= 0) {
-#ifdef DEBUG
-                Serial.print("Expected response found: ");
-                Serial.println(buffer);
-#endif
-                return true;
-            }
-
-            // Keep buffer size reasonable
-            if (buffer.length() > 100) {
-                buffer = buffer.substring(buffer.length() - 50);
-            }
-        }
-        delay(1);  // Small delay to prevent CPU hogging
-    }
-
-#ifdef DEBUG
-    Serial.println("Expected response not found before timeout");
-    Serial.print("Buffer: ");
-    Serial.println(buffer);
-#endif
-
-    return false;
+size_t SerialDevices::write(const uint8_t *buffer, size_t size) {
+    return _serial.write(buffer, size);
 }
 
-void SerialDevices::flushBuffer() {
-    // Clear any pending data from serial buffer
-    while (Serial1.available()) {
-        Serial1.read();
-    }
+int SerialDevices::available() {
+    return _serial.available();
 }
 
-void SerialDevices::applyDeviceSettings(Device device) {
-    // Set relay state based on device
-    digitalWrite(_relayPin, _deviceSettings[device].relayState);
+int SerialDevices::read() {
+    return _serial.read();
+}
 
-#ifdef DEBUG
-    Serial.print("Switched to ");
-    Serial.println(device == RANGEFINDER ? "RANGEFINDER" : "TILT_SERVO");
-    Serial.print("Relay state: ");
-    Serial.println(_deviceSettings[device].relayState ? "HIGH" : "LOW");
-#endif
+int SerialDevices::peek() {
+    return _serial.peek();
+}
+
+void SerialDevices::flush() {
+    _serial.flush();
 }
