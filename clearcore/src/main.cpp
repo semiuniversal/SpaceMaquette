@@ -27,9 +27,9 @@
 #define DEBUG 1
 
 // Pin definitions
-#define ESTOP_PIN      DI6
-#define RELAY_PIN      IO0
-#define TILT_SERVO_PIN IO1  // This is passed to the Arduino but not used directly on ClearCore
+#define ESTOP_PIN DI6
+#define RELAY_PIN IO0
+// Remove TILT_SERVO_PIN definition as it's already defined in motion_control.h
 
 // Create system objects
 CommandParser parser(Serial0);  // Using Serial0 for COM0 (host communication)
@@ -58,7 +58,8 @@ void setup() {
 
     // Initialize system components
     parser.init();
-    motion.init();  // Standard initialization without tilt servo
+    motion.setTiltServo(&tiltServo);  // Connect the tilt servo to motion control
+    motion.init();
     rangefinder.init();
     estop.init();
 

@@ -62,8 +62,9 @@ uint32_t testStackDepth(int depth, uint32_t maxDepth) {
         stackHighWaterMark = currentDepth;
     }
 
-    // Prevent infinite recursion
-    if (depth >= maxDepth) {
+    // Prevent infinite recursion - fixed: compare int to uint32_t
+    if ((uint32_t)depth >=
+        maxDepth) {  // Cast depth to uint32_t to avoid signed/unsigned comparison
         return currentDepth;
     }
 
@@ -85,8 +86,8 @@ void checkStackUsage() {
 
     if (currentTime - lastTestTime > 5000) {  // Test every 5 seconds
         // Test stack with controlled recursion
-        // Adjust maxDepth based on your application
-        uint32_t depth = testStackDepth(0, 20);
+        // Fixed: Don't store result to avoid unused variable warning
+        testStackDepth(0, 20);  // Simply call the function without storing the result
 
         lastTestTime = currentTime;
     }

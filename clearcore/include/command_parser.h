@@ -9,7 +9,7 @@
 
 #pragma once
 
-// Fix for Arduino min/max macro conflicts with C++ STL
+// Undefine min/max macros to prevent conflicts with C++ STL
 #ifdef min
 #undef min
 #endif

@@ -1,5 +1,5 @@
 /**
- * Space Maquette - Tilt Servo Implementation
+ * Space Maquette - Tilt Servo Module Implementation
  */
 
 #include "../include/tilt_servo.h"
@@ -16,19 +16,31 @@ bool TiltServo::init(int minAngle, int maxAngle) {
     setLimits(minAngle, maxAngle);
 
     // Switch to tilt servo device
-    _serialDevices.switchToDevice(SerialDevices::TILT_SERVO);
+    if (!_serialDevices.switchToDevice(TILT_SERVO)) {
+#ifdef DEBUG
+        Serial.println("Failed to switch to TILT_SERVO device");
+#endif
+        return false;
+    }
 
-    // Send initialization command
-    char command[50];
-    sprintf(command, "INIT:min=%d,max=%d", _minAngle, _maxAngle);
+    // Send initialization command with limits
+    String initCmd = formatCommand("INIT", _minAngle);
+    initCmd += "," + String(_maxAngle);
 
-    // Send command and wait for response
-    bool success = sendCommandWithResponse(command, "OK:INIT", 500);
+    bool success = sendCommandWithResponse(initCmd.c_str(), "OK");
 
     if (success) {
         _initialized = true;
+
+        // Set to middle position
+        int middleAngle = (_minAngle + _maxAngle) / 2;
+        setAngle(middleAngle);
+
 #ifdef DEBUG
-        Serial.println("Tilt servo initialized successfully");
+        Serial.print("Tilt servo initialized with limits: ");
+        Serial.print(_minAngle);
+        Serial.print(" - ");
+        Serial.println(_maxAngle);
 #endif
     } else {
 #ifdef DEBUG
@@ -41,36 +53,52 @@ bool TiltServo::init(int minAngle, int maxAngle) {
 
 bool TiltServo::setAngle(int angle) {
     if (!_initialized) {
+#ifdef DEBUG
+        Serial.println("Cannot set angle: Tilt servo not initialized");
+#endif
         return false;
     }
 
-    // Enforce angle limits
+    // Apply limits
     if (angle < _minAngle) {
-        angle = _minAngle;
 #ifdef DEBUG
-        Serial.print("WARNING: Tilt angle limited to minimum: ");
+        Serial.print("Limiting angle to minimum: ");
         Serial.println(_minAngle);
 #endif
+        angle = _minAngle;
     } else if (angle > _maxAngle) {
-        angle = _maxAngle;
 #ifdef DEBUG
-        Serial.print("WARNING: Tilt angle limited to maximum: ");
+        Serial.print("Limiting angle to maximum: ");
         Serial.println(_maxAngle);
 #endif
+        angle = _maxAngle;
     }
 
     // Switch to tilt servo device
-    _serialDevices.switchToDevice(SerialDevices::TILT_SERVO);
+    if (!_serialDevices.switchToDevice(TILT_SERVO)) {
+#ifdef DEBUG
+        Serial.println("Failed to switch to TILT_SERVO device");
+#endif
+        return false;
+    }
 
-    // Send tilt command
-    char command[20];
-    sprintf(command, "TILT:%d", angle);
+    // Send angle command
+    String angleCmd = formatCommand("ANGLE", angle);
 
-    // Send command and wait for response
-    bool success = sendCommandWithResponse(command, "OK:TILT");
+    bool success = sendCommandWithResponse(angleCmd.c_str(), "OK");
 
     if (success) {
         _currentAngle = angle;
+
+#ifdef DEBUG
+        Serial.print("Tilt angle set to: ");
+        Serial.println(angle);
+#endif
+    } else {
+#ifdef DEBUG
+        Serial.print("Failed to set tilt angle to: ");
+        Serial.println(angle);
+#endif
     }
 
     return success;
@@ -81,22 +109,22 @@ int TiltServo::getCurrentAngle() const {
 }
 
 void TiltServo::setLimits(int minAngle, int maxAngle) {
+    // Validate limits
     if (minAngle >= 0 && minAngle < maxAngle && maxAngle <= 180) {
         _minAngle = minAngle;
         _maxAngle = maxAngle;
 
 #ifdef DEBUG
-        Serial.print("Tilt limits set to min=");
+        Serial.print("Tilt limits set to: ");
         Serial.print(_minAngle);
-        Serial.print(", max=");
+        Serial.print(" - ");
         Serial.println(_maxAngle);
 #endif
-    }
+    } else {
 #ifdef DEBUG
-    else {
-        Serial.println("ERROR: Invalid tilt limits");
-    }
+        Serial.println("Invalid tilt limits, using defaults");
 #endif
+    }
 }
 
 bool TiltServo::isInitialized() const {
@@ -105,12 +133,19 @@ bool TiltServo::isInitialized() const {
 
 bool TiltServo::sendCommandWithResponse(const char* command, const char* expectedResponse,
                                         unsigned long timeoutMs) {
-    // Send command
+    // Send the command
     _serialDevices.sendCommand(command);
 
-    // Wait for response
-    String response = _serialDevices.readResponse(timeoutMs);
+    // Wait for the expected response
+    return _serialDevices.waitForResponse(expectedResponse, timeoutMs);
+}
 
-    // Check if response contains expected text
-    return response.indexOf(expectedResponse) != -1;
+String TiltServo::formatCommand(const char* command, int param) {
+    String formattedCmd = String(command);
+
+    if (param >= 0) {
+        formattedCmd += ":" + String(param);
+    }
+
+    return formattedCmd;
 }

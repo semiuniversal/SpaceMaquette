@@ -18,7 +18,7 @@ public:
     TiltServo(SerialDevices& serialDevices);
 
     // Initialize the tilt servo
-    bool init(int minAngle, int maxAngle);
+    bool init(int minAngle = 0, int maxAngle = 180);
 
     // Set tilt angle
     bool setAngle(int angle);
@@ -48,5 +48,8 @@ private:
 
     // Send a command and wait for response
     bool sendCommandWithResponse(const char* command, const char* expectedResponse,
-                                 unsigned long timeoutMs = 100);
+                                 unsigned long timeoutMs = 1000);
+
+    // Format to proper Arduino command protocol
+    String formatCommand(const char* command, int param = -1);
 };

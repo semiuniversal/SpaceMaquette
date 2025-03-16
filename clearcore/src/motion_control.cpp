@@ -1,8 +1,6 @@
 // motion_control.cpp
 #include "motion_control.h"
 
-#define PAN_HOME_SENSOR_PIN 2  // Replace with actual pin number
-
 // Constructor
 MotionControl::MotionControl() {
     _initialized = false;
@@ -25,10 +23,21 @@ MotionControl::MotionControl() {
     _zEnabled = false;
     _panEnabled = false;
     _tiltEnabled = false;
+
     // Default safe tilt limits
     _tiltMinAngle = 45;   // Restrict to 45° minimum by default
     _tiltMaxAngle = 135;  // Restrict to 135° maximum by default
     _tiltHomeAngle = 90;  // Center position (should be safe)
+
+    _tiltServo = nullptr;  // Initialize to nullptr
+
+    // Set default for pan home sensor pin
+    _panHomeSensorPin = PAN_HOME_SENSOR_PIN;
+}
+
+// Set the tilt servo instance
+void MotionControl::setTiltServo(TiltServo *tiltServo) {
+    _tiltServo = tiltServo;
 }
 
 // Initialize the motion control system
@@ -65,13 +74,17 @@ bool MotionControl::init() {
     MOTOR_PAN_AXIS.VelMax(_velocityPan);
     MOTOR_PAN_AXIS.AccelMax(_accelerationLimit);
 
-    // Setup tilt servo
-    _tiltServo.attach(TILT_SERVO_PIN);
-    setTiltAngle(_tiltHomeAngle);  // Go to safe home position immediately
-    _tiltEnabled = true;
-
-    // Configure pan home sensor pin
-    _panHomeSensorPin = PAN_HOME_SENSOR_PIN;
+    // Initialize tilt servo if available
+    if (_tiltServo != nullptr) {
+        _tiltServo->setLimits(_tiltMinAngle, _tiltMaxAngle);
+        _tiltServo->setAngle(_tiltHomeAngle);  // Go to safe home position immediately
+        _tiltEnabled = true;
+    } else {
+#ifdef DEBUG
+        Serial.println("WARNING: No tilt servo configured");
+#endif
+        _tiltEnabled = false;
+    }
 
     _initialized = true;
     return true;
@@ -112,8 +125,8 @@ bool MotionControl::enableMotor(char axis) {
             break;
         case 'T':
         case 't':
-            _tiltEnabled = true;  // Servo doesn't need special enable
-            success = true;
+            _tiltEnabled = (_tiltServo != nullptr);  // Enable if tilt servo exists
+            success = _tiltEnabled;
             break;
         default:
             success = false;
@@ -269,12 +282,11 @@ bool MotionControl::homePanAxis() {
     // Stop motion when sensor is triggered
     MOTOR_PAN_AXIS.MoveStopAbrupt();
 
-    // Get the current encoder position before resetting
-    int32_t currentEncoderPos = MOTOR_PAN_AXIS.PositionRefCommanded();
-
 #ifdef DEBUG
+    // Get the current encoder position before resetting (for debug only)
+    int32_t encoderPos = MOTOR_PAN_AXIS.PositionRefCommanded();
     Serial.print("Pan axis homed. Encoder position before reset: ");
-    Serial.println(currentEncoderPos);
+    Serial.println(encoderPos);
 #endif
 
     // Properly zero the encoder and commanded position
@@ -342,6 +354,14 @@ bool MotionControl::homeAxis(char axis) {
         case 'P':
         case 'p':
             return homePanAxis();  // Use the specialized pan homing
+        case 'T':
+        case 't':
+            if (_tiltEnabled && _tiltServo != nullptr) {
+                success = setTiltAngle(_tiltHomeAngle);
+            } else {
+                success = false;
+            }
+            break;
         default:
             success = false;
     }
@@ -357,6 +377,7 @@ bool MotionControl::homeAllAxes() {
     success &= homeAxis('Y');
     success &= homeAxis('Z');
     success &= homeAxis('P');
+    success &= homeAxis('T');
 
     if (success) {
         _homed = true;
@@ -559,6 +580,11 @@ void MotionControl::setTiltLimits(int minAngle, int maxAngle) {
         _tiltMinAngle = minAngle;
         _tiltMaxAngle = maxAngle;
 
+        // Update tilt servo limits if it exists
+        if (_tiltServo != nullptr) {
+            _tiltServo->setLimits(minAngle, maxAngle);
+        }
+
 #ifdef DEBUG
         Serial.print("Tilt limits set to min=");
         Serial.print(_tiltMinAngle);
@@ -575,7 +601,7 @@ void MotionControl::setTiltLimits(int minAngle, int maxAngle) {
 
 // Set the tilt servo angle
 bool MotionControl::setTiltAngle(int angle) {
-    if (!_tiltEnabled) {
+    if (!_tiltEnabled || _tiltServo == nullptr) {
         return false;
     }
 
@@ -594,10 +620,12 @@ bool MotionControl::setTiltAngle(int angle) {
 #endif
     }
 
-    _tiltServo.write(angle);
-    _currentTilt = angle;
+    bool success = _tiltServo->setAngle(angle);
+    if (success) {
+        _currentTilt = angle;
+    }
 
-    return true;
+    return success;
 }
 
 // Set the pan angle (using the pan axis motor)
@@ -709,7 +737,7 @@ void MotionControl::printAlerts(MotorDriver &motor) {
 // Handle motor alerts
 bool MotionControl::handleAlerts(MotorDriver &motor) {
     if (motor.AlertReg().bit.MotorFaulted) {
-        // Clear motor fault by cycling enable
+// Clear motor fault by cycling enable
 #ifdef DEBUG
         Serial.println("Faults present. Cycling enable signal to motor to clear faults.");
 #endif
@@ -733,7 +761,7 @@ bool MotionControl::handleAlerts(MotorDriver &motor) {
         }
     }
 
-    // Clear any remaining alerts
+// Clear any remaining alerts
 #ifdef DEBUG
     Serial.println("Clearing alerts");
 #endif

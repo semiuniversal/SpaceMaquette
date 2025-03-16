@@ -10,11 +10,11 @@
 #include <Arduino.h>
 #include <ClearCore.h>
 
+// Device types that can be connected to COM1
+enum Device { RANGEFINDER, TILT_SERVO };
+
 class SerialDevices {
 public:
-    // Device types that can be connected to COM1
-    enum Device { RANGEFINDER, TILT_SERVO };
-
     // Constructor
     SerialDevices(int relayPin);
 
@@ -31,7 +31,13 @@ public:
     bool sendCommand(const char* command);
 
     // Read a response with timeout
-    String readResponse(unsigned long timeoutMs = 100);
+    String readResponse(unsigned long timeoutMs = 1000);
+
+    // Wait for a response to include expected text (with timeout)
+    bool waitForResponse(const char* expectedText, unsigned long timeoutMs = 1000);
+
+    // Flush the serial buffer
+    void flushBuffer();
 
 private:
     // Relay control pin

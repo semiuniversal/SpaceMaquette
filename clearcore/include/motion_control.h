@@ -5,18 +5,18 @@
 #include <Arduino.h>
 
 #include "ClearCore.h"
-#include "tilt_servo.h"
+#include "tilt_servo.h"  // Include the tilt servo header
 
 // Define default velocity and acceleration limits
 #define DEFAULT_VELOCITY_LIMIT     10000   // pulses per sec
 #define DEFAULT_ACCELERATION_LIMIT 100000  // pulses per sec^2
 
 // Define motor connector aliases for clarity in code
-#define MOTOR_X_AXIS   ConnectorM0
-#define MOTOR_Y_AXIS   ConnectorM1
-#define MOTOR_Z_AXIS   ConnectorM2
-#define MOTOR_PAN_AXIS ConnectorM3
-#define TILT_SERVO_PIN 9  // Arduino pin for the tilt servo
+#define MOTOR_X_AXIS        ConnectorM0
+#define MOTOR_Y_AXIS        ConnectorM1
+#define MOTOR_Z_AXIS        ConnectorM2
+#define MOTOR_PAN_AXIS      ConnectorM3
+#define PAN_HOME_SENSOR_PIN 2  // Replace with actual pin number
 
 class MotionControl {
 private:
@@ -50,7 +50,7 @@ private:
     int _tiltMaxAngle;
     int _tiltHomeAngle;
 
-    // Pointer to tilt servo controller for tilt control
+    // Pointer to tilt servo interface
     TiltServo *_tiltServo;
 
     // Helper function to check HLFB status
@@ -69,6 +69,9 @@ private:
 public:
     // Constructor
     MotionControl();
+
+    // Set the tilt servo instance (should be called before init)
+    void setTiltServo(TiltServo *tiltServo);
 
     // Initialization
     bool init();
@@ -103,14 +106,7 @@ public:
     bool isHomed();
 
     // Servo-specific functions
-    bool MotionControl::setTiltAngle(int angle) {
-        if (!_tiltEnabled || !_tiltServo) {
-            return false;
-        }
-
-        return _tiltServo->setAngle(angle);
-    }
-
+    bool setTiltAngle(int angle);  // Fixed: removed extra MotionControl:: qualification
     bool setPanAngle(int32_t angle);
 
     // Set tilt servo angle limits
