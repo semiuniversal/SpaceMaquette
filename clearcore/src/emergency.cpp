@@ -8,10 +8,11 @@ EmergencyStop::EmergencyStop(int estopPin) : _estopPin(estopPin), _estopActive(f
 
 void EmergencyStop::init() {
     // Configure ESTOP input pin with pull-up
-    ConnectorMgr.InModeSet(_estopPin, InputMode::ACTIVE_LOW_PULL_UP);
+    // Using Arduino-compatible syntax
+    pinMode(_estopPin, INPUT_PULLUP);
 
-    // Check initial state
-    _estopActive = !ConnectorMgr.DigitalInState(_estopPin);
+    // Check initial state (active LOW for emergency stop)
+    _estopActive = !digitalRead(_estopPin);
 
     // If ESTOP is active on startup, disable motors
     if (_estopActive) {
@@ -29,7 +30,7 @@ void EmergencyStop::init() {
 
 bool EmergencyStop::check() {
     // Read ESTOP input (active low)
-    bool estopTriggered = !ConnectorMgr.DigitalInState(_estopPin);
+    bool estopTriggered = !digitalRead(_estopPin);
 
     // If ESTOP newly activated
     if (estopTriggered && !_estopActive) {
@@ -58,7 +59,7 @@ bool EmergencyStop::isActive() const {
 
 bool EmergencyStop::reset() {
     // Check if ESTOP condition is cleared
-    if (!ConnectorMgr.DigitalInState(_estopPin)) {
+    if (!digitalRead(_estopPin)) {
 #ifdef DEBUG
         Serial.println("Cannot reset: Emergency stop still active");
 #endif
@@ -80,10 +81,11 @@ bool EmergencyStop::reset() {
 
 void EmergencyStop::disableMotors() {
     // Disable all motors by removing enable signal
-    MotorMgr.MotorEnableSet(MotorDriver::MOTOR_1, false);
-    MotorMgr.MotorEnableSet(MotorDriver::MOTOR_2, false);
-    MotorMgr.MotorEnableSet(MotorDriver::MOTOR_3, false);
-    MotorMgr.MotorEnableSet(MotorDriver::MOTOR_4, false);
+    // Using direct connector access for motor control
+    ConnectorM0.EnableRequest(false);
+    ConnectorM1.EnableRequest(false);
+    ConnectorM2.EnableRequest(false);
+    ConnectorM3.EnableRequest(false);
 
 #ifdef DEBUG
     Serial.println("All motors disabled");

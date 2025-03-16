@@ -25,14 +25,14 @@
 #define DEBUG 1
 
 // Pin definitions
-#define ESTOP_PIN             ConnectorDI::DI_6
-#define RANGEFINDER_RELAY_PIN ConnectorIO::IO_0
-#define TILT_SERVO_PIN        ConnectorIO::IO_1
+#define ESTOP_PIN             DI6
+#define RANGEFINDER_RELAY_PIN IO0
+#define TILT_SERVO_PIN        IO1
 
 // Create system objects
-CommandParser parser(Serial1);
+CommandParser parser(Serial0);  // Using Serial0 for COM0 (host communication)
 MotionControl motion;
-Rangefinder rangefinder(Serial2, RANGEFINDER_RELAY_PIN);
+Rangefinder rangefinder(Serial1, RANGEFINDER_RELAY_PIN);  // Using Serial1 for COM1 (rangefinder)
 EmergencyStop estop(ESTOP_PIN);
 ConfigurationManager config("/maquette_config.txt");
 CommandHandler cmdHandler(parser, motion, rangefinder, estop, config);
@@ -46,11 +46,11 @@ void setup() {
     Serial.println("----------------------------------");
 
     // Initialize host communication serial port (COM0)
-    Serial1.begin(115200);
+    Serial0.begin(115200);
 
     // Initialize rangefinder serial port (COM1)
-    Serial2.ttl(true);  // TTL mode
-    Serial2.begin(9600);
+    // Check if we need a method to set TTL mode
+    Serial1.begin(9600);
 
     // Initialize system components
     parser.init();
@@ -78,7 +78,7 @@ void setup() {
         // Set motor acceleration
         motion.setAcceleration(config.getInt("acceleration", DEFAULT_ACCELERATION_LIMIT));
 
-        // Set tilt limits - assuming this method exists or will be added
+        // Set tilt limits
         motion.setTiltLimits(config.getInt("tilt_min", 45), config.getInt("tilt_max", 135));
     }
 
