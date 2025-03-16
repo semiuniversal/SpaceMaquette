@@ -1,409 +1,529 @@
-/**
- * Space Maquette - Motion Control Implementation
- */
+#include "motion_control.h"
 
-#include "../include/motion_control.h"
+// Constructor
+MotionControl::MotionControl() {
+    _initialized = false;
+    _homed = false;
 
-MotionControl::MotionControl()
-    : _tiltServoPin(ConnectorIO::IO_1),
-      _positionX(0.0),
-      _positionY(0.0),
-      _positionZ(0.0),
-      _panAngle(0.0),
-      _tiltAngle(45.0),
-      _targetX(0.0),
-      _targetY(0.0),
-      _targetZ(0.0),
-      _targetPan(0.0),
-      _targetTilt(45.0),
-      _velocityX(500.0),
-      _velocityY(500.0),
-      _velocityZ(500.0),
-      _state(IDLE),
-      _homed(false) {}
+    _currentX = 0;
+    _currentY = 0;
+    _currentZ = 0;
+    _currentPan = 0;
+    _currentTilt = 0;
 
-void MotionControl::init() {
-    // Setup motors and initial state
-    setupMotors();
+    _velocityLimit = DEFAULT_VELOCITY_LIMIT;
+    _accelerationLimit = DEFAULT_ACCELERATION_LIMIT;
 
-    // Initialize tilt servo
-    ConnectorMgr.OutModeSet(_tiltServoPin, OutputMode::PWM);
-    setTiltAngle(_tiltAngle);
-
-#ifdef DEBUG
-    Serial.println("Motion complete");
-#endif
-}
-}
+    _xEnabled = false;
+    _yEnabled = false;
+    _zEnabled = false;
+    _panEnabled = false;
+    _tiltEnabled = false;
 }
 
-void MotionControl::enableMotors(bool enable) {
-    // Enable/disable all motors
-    MotorMgr.MotorEnableSet(_motorX, enable);
-    MotorMgr.MotorEnableSet(_motorY, enable);
-    MotorMgr.MotorEnableSet(_motorZ, enable);
-    MotorMgr.MotorEnableSet(_motorPan, enable);
+// Initialize the motion control system
+bool MotionControl::initialize() {
+    if (_initialized) {
+        return true;  // Already initialized
+    }
 
-#ifdef DEBUG
-    Serial.print("Motors ");
-    Serial.println(enable ? "enabled" : "disabled");
-#endif
+    // Set the input clocking rate for step and direction applications
+    MotorMgr.MotorInputClocking(MotorManager::CLOCK_RATE_NORMAL);
+
+    // Set all motor connectors to step and direction mode
+    MotorMgr.MotorModeSet(MotorManager::MOTOR_ALL, Connector::CPM_MODE_STEP_AND_DIR);
+
+    // Configure each motor's HLFB mode to bipolar PWM
+    MOTOR_X_AXIS.HlfbMode(MotorDriver::HLFB_MODE_HAS_BIPOLAR_PWM);
+    MOTOR_Y_AXIS.HlfbMode(MotorDriver::HLFB_MODE_HAS_BIPOLAR_PWM);
+    MOTOR_Z_AXIS.HlfbMode(MotorDriver::HLFB_MODE_HAS_BIPOLAR_PWM);
+    MOTOR_PAN_AXIS.HlfbMode(MotorDriver::HLFB_MODE_HAS_BIPOLAR_PWM);
+
+    // Set the HLFB carrier frequency to 482 Hz for each motor
+    MOTOR_X_AXIS.HlfbCarrier(MotorDriver::HLFB_CARRIER_482_HZ);
+    MOTOR_Y_AXIS.HlfbCarrier(MotorDriver::HLFB_CARRIER_482_HZ);
+    MOTOR_Z_AXIS.HlfbCarrier(MotorDriver::HLFB_CARRIER_482_HZ);
+    MOTOR_PAN_AXIS.HlfbCarrier(MotorDriver::HLFB_CARRIER_482_HZ);
+
+    // Set velocity and acceleration limits for each motor
+    MOTOR_X_AXIS.VelMax(_velocityLimit);
+    MOTOR_X_AXIS.AccelMax(_accelerationLimit);
+    MOTOR_Y_AXIS.VelMax(_velocityLimit);
+    MOTOR_Y_AXIS.AccelMax(_accelerationLimit);
+    MOTOR_Z_AXIS.VelMax(_velocityLimit);
+    MOTOR_Z_AXIS.AccelMax(_accelerationLimit);
+    MOTOR_PAN_AXIS.VelMax(_velocityLimit);
+    MOTOR_PAN_AXIS.AccelMax(_accelerationLimit);
+
+    // Configure IO-0 for tilt servo (RC Servo)
+    SERVO_TILT_AXIS.Mode(Connector::IO_MODE_SERVO);
+
+    _initialized = true;
+    return true;
 }
 
-void MotionControl::setupMotors() {
-    // Set motor modes
-    MotorMgr.MotorModeSet(_motorX, Connector::CPM_MODE_A_DIRECT_B_PWM);
-    MotorMgr.MotorModeSet(_motorY, Connector::CPM_MODE_A_DIRECT_B_PWM);
-    MotorMgr.MotorModeSet(_motorZ, Connector::CPM_MODE_A_DIRECT_B_PWM);
-    MotorMgr.MotorModeSet(_motorPan, Connector::CPM_MODE_A_DIRECT_B_PWM);
+// Enable a specific motor axis
+bool MotionControl::enableMotor(char axis) {
+    if (!_initialized) {
+        return false;
+    }
 
-    // Initialize motor directions
-    MotorMgr.MotorInBDirect(_motorX, false);
-    MotorMgr.MotorInBDirect(_motorY, false);
-    MotorMgr.MotorInBDirect(_motorZ, false);
-    MotorMgr.MotorInBDirect(_motorPan, false);
+    bool success = true;
 
-    // Set velocity and acceleration limits
-    Motor.VelMax(_motorX, _velocityX);
-    Motor.VelMax(_motorY, _velocityY);
-    Motor.VelMax(_motorZ, _velocityZ);
-    Motor.VelMax(_motorPan, 100.0);  // Pan is slower
+    switch (axis) {
+        case 'X':
+        case 'x':
+            MOTOR_X_AXIS.EnableRequest(true);
+            success = waitForHlfb(MOTOR_X_AXIS);
+            _xEnabled = success;
+            break;
+        case 'Y':
+        case 'y':
+            MOTOR_Y_AXIS.EnableRequest(true);
+            success = waitForHlfb(MOTOR_Y_AXIS);
+            _yEnabled = success;
+            break;
+        case 'Z':
+        case 'z':
+            MOTOR_Z_AXIS.EnableRequest(true);
+            success = waitForHlfb(MOTOR_Z_AXIS);
+            _zEnabled = success;
+            break;
+        case 'P':
+        case 'p':
+            MOTOR_PAN_AXIS.EnableRequest(true);
+            success = waitForHlfb(MOTOR_PAN_AXIS);
+            _panEnabled = success;
+            break;
+        default:
+            success = false;
+            break;
+    }
 
-    Motor.AccelMax(_motorX, 1000.0);
-    Motor.AccelMax(_motorY, 1000.0);
-    Motor.AccelMax(_motorZ, 1000.0);
-    Motor.AccelMax(_motorPan, 200.0);  // Pan acceleration is lower
-
-    // Motors are initially disabled
-    enableMotors(false);
+    return success;
 }
 
-int MotionControl::angleToPWM(float angle) {
-    // Convert angle from MIN_TILT_ANGLE-MAX_TILT_ANGLE to 1000-2000 microseconds
-    // (Standard servo PWM range)
-    int pwmValue = map(angle * 10, MIN_TILT_ANGLE * 10, MAX_TILT_ANGLE * 10, 1000, 2000);
-    return pwmValue;
-}
-Serial.print("Set velocities to X:");
-Serial.print(vx);
-Serial.print(" Y:");
-Serial.print(vy);
-Serial.print(" Z:");
-Serial.println(vz);
-#endif
+// Enable all motors
+bool MotionControl::enableAllMotors() {
+    bool success = true;
+
+    success &= enableMotor('X');
+    success &= enableMotor('Y');
+    success &= enableMotor('Z');
+    success &= enableMotor('P');
+
+    // Tilt is handled separately as it's an RC servo
+    _tiltEnabled = true;
+
+    return success;
 }
 
-bool MotionControl::isMoving() const {
-    return _state == MOVING;
+// Disable a specific motor axis
+bool MotionControl::disableMotor(char axis) {
+    if (!_initialized) {
+        return false;
+    }
+
+    switch (axis) {
+        case 'X':
+        case 'x':
+            MOTOR_X_AXIS.EnableRequest(false);
+            _xEnabled = false;
+            break;
+        case 'Y':
+        case 'y':
+            MOTOR_Y_AXIS.EnableRequest(false);
+            _yEnabled = false;
+            break;
+        case 'Z':
+        case 'z':
+            MOTOR_Z_AXIS.EnableRequest(false);
+            _zEnabled = false;
+            break;
+        case 'P':
+        case 'p':
+            MOTOR_PAN_AXIS.EnableRequest(false);
+            _panEnabled = false;
+            break;
+        case 'T':
+        case 't':
+            _tiltEnabled = false;
+            break;
+        default:
+            return false;
+    }
+
+    return true;
 }
 
-bool MotionControl::isHomed() const {
+// Disable all motors
+bool MotionControl::disableAllMotors() {
+    MOTOR_X_AXIS.EnableRequest(false);
+    MOTOR_Y_AXIS.EnableRequest(false);
+    MOTOR_Z_AXIS.EnableRequest(false);
+    MOTOR_PAN_AXIS.EnableRequest(false);
+
+    _xEnabled = false;
+    _yEnabled = false;
+    _zEnabled = false;
+    _panEnabled = false;
+    _tiltEnabled = false;
+
+    return true;
+}
+
+// Home a specific axis
+bool MotionControl::homeAxis(char axis) {
+    // Implementation would depend on your homing strategy
+    // This is a placeholder that would need to be customized
+
+    return true;
+}
+
+// Home all axes
+bool MotionControl::homeAllAxes() {
+    bool success = true;
+
+    success &= homeAxis('X');
+    success &= homeAxis('Y');
+    success &= homeAxis('Z');
+    success &= homeAxis('P');
+
+    if (success) {
+        _homed = true;
+    }
+
+    return success;
+}
+
+// Move an axis to an absolute position
+bool MotionControl::moveAbsolute(char axis, int32_t position) {
+    if (!_initialized) {
+        return false;
+    }
+
+    bool success = true;
+    MotorDriver *motor = nullptr;
+
+    // Select the appropriate motor connector based on the axis
+    switch (axis) {
+        case 'X':
+        case 'x':
+            if (!_xEnabled)
+                return false;
+            motor = &MOTOR_X_AXIS;
+            break;
+        case 'Y':
+        case 'y':
+            if (!_yEnabled)
+                return false;
+            motor = &MOTOR_Y_AXIS;
+            break;
+        case 'Z':
+        case 'z':
+            if (!_zEnabled)
+                return false;
+            motor = &MOTOR_Z_AXIS;
+            break;
+        case 'P':
+        case 'p':
+            if (!_panEnabled)
+                return false;
+            motor = &MOTOR_PAN_AXIS;
+            break;
+        case 'T':
+        case 't':
+            if (!_tiltEnabled)
+                return false;
+            // For tilt servo (using position as angle)
+            SERVO_TILT_AXIS.ServoPositionSet(position);
+            _currentTilt = position;
+            return true;
+        default:
+            return false;
+    }
+
+    // Check if motor has any alerts
+    if (motor->StatusReg().bit.AlertsPresent) {
+        printAlerts(*motor);
+        success = handleAlerts(*motor);
+        if (!success) {
+            return false;
+        }
+    }
+
+    // Command the absolute move
+    motor->Move(position, MotorDriver::MOVE_TARGET_ABSOLUTE);
+
+    // Wait for the move to complete and HLFB to assert
+    while ((!motor->StepsComplete() || motor->HlfbState() != MotorDriver::HLFB_ASSERTED) &&
+           !motor->StatusReg().bit.AlertsPresent) {
+        // Could add a timeout here if needed
+    }
+
+    // Check if any alerts occurred during the move
+    if (motor->StatusReg().bit.AlertsPresent) {
+        printAlerts(*motor);
+        success = handleAlerts(*motor);
+    }
+
+    // Update the current position if move was successful
+    if (success) {
+        switch (axis) {
+            case 'X':
+            case 'x':
+                _currentX = position;
+                break;
+            case 'Y':
+            case 'y':
+                _currentY = position;
+                break;
+            case 'Z':
+            case 'z':
+                _currentZ = position;
+                break;
+            case 'P':
+            case 'p':
+                _currentPan = position;
+                break;
+        }
+    }
+
+    return success;
+}
+
+// Move an axis by a relative distance
+bool MotionControl::moveRelative(char axis, int32_t distance) {
+    int32_t currentPos = getCurrentPosition(axis);
+    return moveAbsolute(axis, currentPos + distance);
+}
+
+// Move to a specified position (multi-axis)
+bool MotionControl::moveToPosition(int32_t x, int32_t y, int32_t z, int32_t pan, int32_t tilt) {
+    bool success = true;
+
+    if (x >= 0) {
+        success &= moveAbsolute('X', x);
+    }
+
+    if (y >= 0) {
+        success &= moveAbsolute('Y', y);
+    }
+
+    if (z >= 0) {
+        success &= moveAbsolute('Z', z);
+    }
+
+    if (pan >= 0) {
+        success &= moveAbsolute('P', pan);
+    }
+
+    if (tilt >= 0) {
+        success &= moveAbsolute('T', tilt);
+    }
+
+    return success;
+}
+
+// Stop all motion
+bool MotionControl::stop() {
+    MOTOR_X_AXIS.MoveStopAbrupt();
+    MOTOR_Y_AXIS.MoveStopAbrupt();
+    MOTOR_Z_AXIS.MoveStopAbrupt();
+    MOTOR_PAN_AXIS.MoveStopAbrupt();
+
+    return true;
+}
+
+// Set velocity for all motors
+void MotionControl::setVelocity(int velocity) {
+    _velocityLimit = velocity;
+
+    if (_initialized) {
+        MOTOR_X_AXIS.VelMax(_velocityLimit);
+        MOTOR_Y_AXIS.VelMax(_velocityLimit);
+        MOTOR_Z_AXIS.VelMax(_velocityLimit);
+        MOTOR_PAN_AXIS.VelMax(_velocityLimit);
+    }
+}
+
+// Set acceleration for all motors
+void MotionControl::setAcceleration(int acceleration) {
+    _accelerationLimit = acceleration;
+
+    if (_initialized) {
+        MOTOR_X_AXIS.AccelMax(_accelerationLimit);
+        MOTOR_Y_AXIS.AccelMax(_accelerationLimit);
+        MOTOR_Z_AXIS.AccelMax(_accelerationLimit);
+        MOTOR_PAN_AXIS.AccelMax(_accelerationLimit);
+    }
+}
+
+// Get current velocity limit
+int MotionControl::getVelocity() {
+    return _velocityLimit;
+}
+
+// Get current acceleration limit
+int MotionControl::getAcceleration() {
+    return _accelerationLimit;
+}
+
+// Get current position of an axis
+int32_t MotionControl::getCurrentPosition(char axis) {
+    switch (axis) {
+        case 'X':
+        case 'x':
+            return _currentX;
+        case 'Y':
+        case 'y':
+            return _currentY;
+        case 'Z':
+        case 'z':
+            return _currentZ;
+        case 'P':
+        case 'p':
+            return _currentPan;
+        case 'T':
+        case 't':
+            return _currentTilt;
+        default:
+            return 0;
+    }
+}
+
+// Check if any motor is currently moving
+bool MotionControl::isMoving() {
+    if (!_initialized) {
+        return false;
+    }
+
+    return !MOTOR_X_AXIS.StepsComplete() || !MOTOR_Y_AXIS.StepsComplete() ||
+           !MOTOR_Z_AXIS.StepsComplete() || !MOTOR_PAN_AXIS.StepsComplete();
+}
+
+// Check if the system is homed
+bool MotionControl::isHomed() {
     return _homed;
 }
 
-float MotionControl::getPositionX() const {
-    return _positionX;
+// Check if a specific motor is enabled
+bool MotionControl::isEnabled(char axis) {
+    switch (axis) {
+        case 'X':
+        case 'x':
+            return _xEnabled;
+        case 'Y':
+        case 'y':
+            return _yEnabled;
+        case 'Z':
+        case 'z':
+            return _zEnabled;
+        case 'P':
+        case 'p':
+            return _panEnabled;
+        case 'T':
+        case 't':
+            return _tiltEnabled;
+        default:
+            return false;
+    }
 }
 
-float MotionControl::getPositionY() const {
-    return _positionY;
+// Check if any motor has an error
+bool MotionControl::hasError() {
+    if (!_initialized) {
+        return false;
+    }
+
+    return MOTOR_X_AXIS.StatusReg().bit.AlertsPresent ||
+           MOTOR_Y_AXIS.StatusReg().bit.AlertsPresent ||
+           MOTOR_Z_AXIS.StatusReg().bit.AlertsPresent ||
+           MOTOR_PAN_AXIS.StatusReg().bit.AlertsPresent;
 }
 
-float MotionControl::getPositionZ() const {
-    return _positionZ;
+// Helper function to wait for HLFB to assert
+bool MotionControl::waitForHlfb(MotorDriver &motor, uint32_t timeoutMs) {
+    unsigned long startTime = millis();
+
+    while (motor.HlfbState() != MotorDriver::HLFB_ASSERTED &&
+           !motor.StatusReg().bit.AlertsPresent) {
+        if (timeoutMs > 0 && (millis() - startTime > timeoutMs)) {
+            return false;  // Timeout occurred
+        }
+    }
+
+    if (motor.StatusReg().bit.AlertsPresent) {
+        printAlerts(motor);
+        return handleAlerts(motor);
+    }
+
+    return true;
 }
 
-float MotionControl::getPanAngle() const {
-    return _panAngle;
+// Print any active alerts for a motor
+void MotionControl::printAlerts(MotorDriver &motor) {
+#ifdef DEBUG
+    Serial.println("Alerts present: ");
+    if (motor.AlertReg().bit.MotionCanceledInAlert) {
+        Serial.println("    MotionCanceledInAlert");
+    }
+    if (motor.AlertReg().bit.MotionCanceledPositiveLimit) {
+        Serial.println("    MotionCanceledPositiveLimit");
+    }
+    if (motor.AlertReg().bit.MotionCanceledNegativeLimit) {
+        Serial.println("    MotionCanceledNegativeLimit");
+    }
+    if (motor.AlertReg().bit.MotionCanceledSensorEStop) {
+        Serial.println("    MotionCanceledSensorEStop");
+    }
+    if (motor.AlertReg().bit.MotionCanceledMotorDisabled) {
+        Serial.println("    MotionCanceledMotorDisabled");
+    }
+    if (motor.AlertReg().bit.MotorFaulted) {
+        Serial.println("    MotorFaulted");
+    }
+#endif
 }
 
-float MotionControl::getTiltAngle() const {
-    return _tiltAngle;
-}
+// Handle motor alerts
+bool MotionControl::handleAlerts(MotorDriver &motor) {
+    if (motor.AlertReg().bit.MotorFaulted) {
+// Clear motor fault by cycling enable
+#ifdef DEBUG
+        Serial.println("Faults present. Cycling enable signal to motor to clear faults.");
+#endif
 
-void MotionControl::update() {
-    // Update motion state
-    if (_state == MOVING) {
-        // In a real implementation, we would check motor status
-        // and update position based on encoder feedback
+        motor.EnableRequest(false);
+        delay(10);
+        motor.EnableRequest(true);
 
-        // This is a simplified implementation for demonstration
-
-        // Check if we've reached the target positions
-        bool xDone = abs(_positionX - _targetX) < 0.1;
-        bool yDone = abs(_positionY - _targetY) < 0.1;
-        bool zDone = abs(_positionZ - _targetZ) < 0.1;
-        bool panDone = abs(_panAngle - _targetPan) < 0.1;
-
-        // Update positions (simplified simulation)
-        if (!xDone) {
-            _positionX += (_targetX > _positionX) ? 0.5 : -0.5;
+        // Wait for HLFB to assert after re-enabling
+        unsigned long startTime = millis();
+        while (motor.HlfbState() != MotorDriver::HLFB_ASSERTED && (millis() - startTime < 5000)) {
+            // Wait up to 5 seconds for HLFB
         }
 
-        if (!yDone) {
-            _positionY += (_targetY > _positionY) ? 0.5 : -0.5;
-        }
-
-        if (!zDone) {
-            _positionZ += (_targetZ > _positionZ) ? 0.5 : -0.5;
-        }
-
-        if (!panDone) {
-            float diff = _targetPan - _panAngle;
-            // Handle wrap-around for pan angle
-            if (diff > 180.0)
-                diff -= 360.0;
-            if (diff < -180.0)
-                diff += 360.0;
-            _panAngle += (diff > 0) ? 0.5 : -0.5;
-            // Normalize pan angle
-            while (_panAngle < 0)
-                _panAngle += 360.0;
-            while (_panAngle >= 360.0)
-                _panAngle -= 360.0;
-        }
-
-        // Check if motion is complete
-        if (xDone && yDone && zDone && panDone) {
-            _state = IDLE;
+        if (motor.HlfbState() != MotorDriver::HLFB_ASSERTED) {
 #ifdef DEBUG
-            Serial.print("Setting pan to ");
-            Serial.print(angle);
-            Serial.println(" degrees");
-#endif
-
-            // In a real implementation, we would use ClearCore motor control
-            // to rotate the pan axis to the target angle
-
-            return true;
-        }
-
-        void MotionControl::stop() {
-            // Stop all motors
-            Motor.MoveStopAbrupt(_motorX);
-            Motor.MoveStopAbrupt(_motorY);
-            Motor.MoveStopAbrupt(_motorZ);
-            Motor.MoveStopAbrupt(_motorPan);
-
-            // Update state
-            _state = IDLE;
-
-#ifdef DEBUG
-            Serial.println("Motion stopped");
-#endif
-        }
-
-        void MotionControl::setVelocity(float vx, float vy, float vz) {
-            // Set velocity limits for motors
-            _velocityX = vx;
-            _velocityY = vy;
-            _velocityZ = vz;
-
-            // Apply to motors
-            Motor.VelMax(_motorX, _velocityX);
-            Motor.VelMax(_motorY, _velocityY);
-            Motor.VelMax(_motorZ, _velocityZ);
-
-#ifdef DEBUG
-            Serial.print("Moving to X:");
-            Serial.print(x);
-            Serial.print(" Y:");
-            Serial.print(y);
-            Serial.print(" Z:");
-            Serial.print(z);
-            Serial.print(" Pan:");
-            Serial.print(pan);
-            Serial.print(" Tilt:");
-            Serial.println(tilt);
-#endif
-
-            // In a real implementation, we would use ClearCore motor control
-            // to set up the motion profiles for each axis
-
-            return true;
-        }
-
-        bool MotionControl::setTiltAngle(float angle) {
-            // Check limits
-            if (angle < MIN_TILT_ANGLE || angle > MAX_TILT_ANGLE) {
-#ifdef DEBUG
-                Serial.println("Tilt angle out of range");
-#endif
-                return false;
-            }
-
-            // Convert angle to PWM value
-            int pwmValue = angleToPWM(angle);
-
-            // Set PWM value
-            ConnectorMgr.PwmDutySet(_tiltServoPin, pwmValue);
-
-            // Update current angle
-            _tiltAngle = angle;
-
-#ifdef DEBUG
-            Serial.print("Set tilt to ");
-            Serial.print(angle);
-            Serial.println(" degrees");
-#endif
-
-            return true;
-        }
-
-        bool MotionControl::setPanAngle(float angle) {
-            // Normalize angle to 0-360 range
-            while (angle < 0)
-                angle += 360.0;
-            while (angle >= 360.0)
-                angle -= 360.0;
-
-            if (_state != IDLE) {
-#ifdef DEBUG
-                Serial.println("Cannot set pan: System not in IDLE state");
-#endif
-                return false;
-            }
-
-            // Set target pan angle
-            _targetPan = angle;
-            _state = MOVING;
-
-#ifdef DEBUG
-            Serial.println("Motion control initialized");
-#endif
-        }
-
-        bool MotionControl::homeAll() {
-            if (_state != IDLE) {
-#ifdef DEBUG
-                Serial.println("Cannot move: System not in IDLE state");
-#endif
-                return false;
-            }
-
-            if (!_homed) {
-#ifdef DEBUG
-                Serial.println("Cannot move: System not homed");
-#endif
-                return false;
-            }
-
-            // Check position limits
-            if (x < 0 || x > MAX_X || y < 0 || y > MAX_Y || z < 0 || z > MAX_Z) {
-#ifdef DEBUG
-                Serial.println("Cannot move: Position out of range");
-#endif
-                return false;
-            }
-
-            // Check tilt limits
-            if (tilt < MIN_TILT_ANGLE || tilt > MAX_TILT_ANGLE) {
-#ifdef DEBUG
-                Serial.println("Cannot move: Tilt angle out of range");
-#endif
-                return false;
-            }
-
-            // Set target positions
-            _targetX = x;
-            _targetY = y;
-            _targetZ = z;
-            _targetPan = pan;
-            _targetTilt = tilt;
-
-            // Set tilt immediately
-            setTiltAngle(tilt);
-
-            // Start motion of other axes
-            _state = MOVING;
-
-#ifdef DEBUG
-            Serial.println("Cannot home: System not in IDLE state");
+            Serial.println("Failed to clear motor fault");
 #endif
             return false;
         }
-
-        _state = HOMING;
-
-#ifdef DEBUG
-        Serial.println("Starting homing sequence");
-#endif
-
-        // This is a simplified implementation - in reality, we would
-        // implement a state machine for the homing sequence
-
-        // Start with Z axis for safety
-        if (!homeZ()) {
-            _state = ERROR;
-            return false;
-        }
-
-        // Then X and Y
-        if (!homeX() || !homeY()) {
-            _state = ERROR;
-            return false;
-        }
-
-        // Finally pan
-        if (!homePan()) {
-            _state = ERROR;
-            return false;
-        }
-
-        _homed = true;
-        _state = IDLE;
-
-#ifdef DEBUG
-        Serial.println("Homing complete");
-#endif
-
-        return true;
     }
 
-    bool MotionControl::homeX() {
-        // Implementation would use ClearCore homing functions
-        // This is a placeholder for demonstration
-
+// Clear any remaining alerts
 #ifdef DEBUG
-        Serial.println("Homing X axis");
+    Serial.println("Clearing alerts");
 #endif
+    motor.ClearAlerts();
 
-        return true;
-    }
+    return true;
+}
 
-    bool MotionControl::homeY() {
-        // Implementation would use ClearCore homing functions
-        // This is a placeholder for demonstration
-
-#ifdef DEBUG
-        Serial.println("Homing Y axis");
-#endif
-
-        return true;
-    }
-
-    bool MotionControl::homeZ() {
-        // Implementation would use ClearCore homing functions
-        // This is a placeholder for demonstration
-
-#ifdef DEBUG
-        Serial.println("Homing Z axis");
-#endif
-
-        return true;
-    }
-
-    bool MotionControl::homePan() {
-        // Implementation would use ClearCore homing functions
-        // This is a placeholder for demonstration
-
-#ifdef DEBUG
-        Serial.println("Homing Pan axis");
-#endif
-
-        return true;
-    }
-
-    bool MotionControl::moveToPosition(float x, float y, float z, float pan, float tilt) {
-        if (_state != IDLE) {
-#ifdef DEBUG
+// Get error message for debugging
+const char *MotionControl::getErrorMessage() {
+    // Implementation would depend on your error handling strategy
+    // This is a placeholder
+    return "No detailed error information available";
+}
