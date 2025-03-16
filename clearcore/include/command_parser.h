@@ -12,6 +12,8 @@
 #include <Arduino.h>
 #include <ClearCore.h>
 
+#include <functional>
+
 #define CMD_BUFFER_SIZE   128
 #define MAX_PARAMS        10
 #define PARAM_BUFFER_SIZE 128
@@ -42,7 +44,7 @@ public:
     int getParamAsInt(int index) const;
 
     // Register command handler callback
-    typedef void (*CommandHandler)(CommandParser& parser);
+    typedef std::function<void(CommandParser& parser)> CommandHandler;
     void setCommandHandler(CommandHandler handler);
 
 private:

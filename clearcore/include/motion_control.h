@@ -1,5 +1,9 @@
+// motion_control.h
 #ifndef MOTION_CONTROL_H
 #define MOTION_CONTROL_H
+
+#include <Arduino.h>
+#include <Servo.h>  // Include the Servo library for tilt control
 
 #include "ClearCore.h"
 
@@ -8,11 +12,11 @@
 #define DEFAULT_ACCELERATION_LIMIT 100000  // pulses per sec^2
 
 // Define motor connector aliases for clarity in code
-#define MOTOR_X_AXIS    ConnectorM0
-#define MOTOR_Y_AXIS    ConnectorM1
-#define MOTOR_Z_AXIS    ConnectorM2
-#define MOTOR_PAN_AXIS  ConnectorM3
-#define SERVO_TILT_AXIS ConnectorIO0
+#define MOTOR_X_AXIS   ConnectorM0
+#define MOTOR_Y_AXIS   ConnectorM1
+#define MOTOR_Z_AXIS   ConnectorM2
+#define MOTOR_PAN_AXIS ConnectorM3
+#define TILT_SERVO_PIN 9  // Arduino pin for the tilt servo
 
 class MotionControl {
 private:
@@ -28,7 +32,10 @@ private:
     int32_t _currentTilt;
 
     // Speed and acceleration parameters
-    int _velocityLimit;
+    int _velocityX;
+    int _velocityY;
+    int _velocityZ;
+    int _velocityPan;
     int _accelerationLimit;
 
     // Motor enabled states
@@ -38,6 +45,14 @@ private:
     bool _panEnabled;
     bool _tiltEnabled;
 
+    // Tilt safety limits
+    int _tiltMinAngle;
+    int _tiltMaxAngle;
+    int _tiltHomeAngle;
+
+    // Servo instance for tilt control
+    Servo _tiltServo;
+
     // Helper function to check HLFB status
     bool waitForHlfb(MotorDriver &motor, uint32_t timeoutMs = 5000);
 
@@ -45,12 +60,18 @@ private:
     void printAlerts(MotorDriver &motor);
     bool handleAlerts(MotorDriver &motor);
 
+    // Pin for Pan home sensor
+    int _panHomeSensorPin;
+    // Methods for Pan homing
+    bool isPanHomeSensorTriggered();
+    bool homePanAxis();
+
 public:
     // Constructor
     MotionControl();
 
     // Initialization
-    bool initialize();
+    bool init();
 
     // Motor enable/disable functions
     bool enableMotor(char axis);
@@ -69,20 +90,36 @@ public:
     bool stop();
 
     // Parameter functions
-    void setVelocity(int velocity);
+    void setVelocity(int vx, int vy = 0, int vz = 0);
     void setAcceleration(int acceleration);
-    int getVelocity();
-    int getAcceleration();
+    int getVelocityX() { return _velocityX; }
+    int getVelocityY() { return _velocityY; }
+    int getVelocityZ() { return _velocityZ; }
+    int getAcceleration() { return _accelerationLimit; }
 
     // Position query functions
     int32_t getCurrentPosition(char axis);
     bool isMoving();
     bool isHomed();
 
+    // Servo-specific functions
+    bool setTiltAngle(int angle);
+    bool setPanAngle(int32_t angle);
+
     // Status functions
     bool isEnabled(char axis);
     bool hasError();
     const char *getErrorMessage();
+
+    // Update method for continuous operations
+    void update();
+
+    // Accessor functions
+    float getPositionX() { return _currentX; }
+    float getPositionY() { return _currentY; }
+    float getPositionZ() { return _currentZ; }
+    float getPanAngle() { return _currentPan; }
+    float getTiltAngle() { return _currentTilt; }
 };
 
 #endif  // MOTION_CONTROL_H

@@ -122,13 +122,13 @@ void CommandHandler::handleMotionCommands() {
             bool success = false;
 
             if (strcmp(axis, "ALL") == 0) {
-                success = _motion.homeAll();
+                success = _motion.homeAllAxes();
             } else if (strcmp(axis, "X") == 0) {
-                success = _motion.homeX();
+                success = _motion.homeAxis('X');
             } else if (strcmp(axis, "Y") == 0) {
-                success = _motion.homeY();
+                success = _motion.homeAxis('Y');
             } else if (strcmp(axis, "Z") == 0) {
-                success = _motion.homeZ();
+                success = _motion.homeAxis('Z');
             } else {
                 _parser.sendResponse("ERROR", "INVALID_AXIS");
                 return;
