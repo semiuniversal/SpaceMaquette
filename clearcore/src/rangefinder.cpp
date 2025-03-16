@@ -1,4 +1,13 @@
+#include "macros.h"
+
+// Protect STL min/max before including STL headers
+PROTECT_STD_MINMAX
+#include <algorithm>
+// Add any other STL includes here
+RESTORE_MINMAX
+
 #include "rangefinder.h"
+#include "serial_devices.h"  // Make sure it's explicitly included
 
 Rangefinder::Rangefinder(SerialDevices &serialDevices)
     : _serialDevices(serialDevices), _lastMeasurement(0.0f), _debugEnabled(false) {
@@ -13,25 +22,19 @@ void Rangefinder::begin() {
     // Any initialization needed
 }
 
-// Just the relevant section that needs to be fixed
 float Rangefinder::takeMeasurement() {
     log("=== Starting Measurement ===");
-    // Switch to rangefinder device
-    _serialDevices.switchToDevice(SerialDevices::RANGEFINDER);
-    log("Switched to rangefinder");
 
-    // Clear any pending data
-    while (_serialDevices.available()) {
-        _serialDevices.read();
+    // Select rangefinder device
+    if (!_serialDevices.selectDevice(SerialDevices::DeviceType::RANGEFINDER)) {
+        log("Failed to select rangefinder device");
+        return _lastMeasurement;
     }
+    log("Selected rangefinder device");
 
     // Send measurement command
-    const char *measureCmd = "MEASURE\r\n";
-    _serialDevices.write((const uint8_t *)measureCmd, strlen(measureCmd));
-    log("Sent MEASURE command");
-
-    // Rest of the method remains the same
-    // ...
+    _serialDevices.write("DIST\r\n");
+    log("Sent DIST command");
 
     // Wait for response with timeout
     unsigned long startTime = millis();
@@ -39,7 +42,7 @@ float Rangefinder::takeMeasurement() {
 
     // Buffer for response
     char buffer[32];
-    int bufferIndex = 0;
+    size_t bufferIndex = 0;
 
     while (millis() - startTime < timeout) {
         if (_serialDevices.available()) {

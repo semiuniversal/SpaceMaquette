@@ -2,7 +2,7 @@
  * Space Maquette - Command Handler Implementation
  */
 
-#include "../include/command_handler.h"
+#include "command_handler.h"
 
 CommandHandler::CommandHandler(CommandParser& parser, MotionControl& motion,
                                Rangefinder& rangefinder, EmergencyStop& estop,
@@ -16,7 +16,8 @@ CommandHandler::CommandHandler(CommandParser& parser, MotionControl& motion,
 
 void CommandHandler::init() {
     // Register this handler with the parser
-    _parser.setCommandHandler([this](CommandParser& parser) { this->processCommand(parser); });
+    _parser.setCommandHandler(
+        [this](CommandParser& parser) -> void { this->processCommand(parser); });
 
 #ifdef DEBUG
     Serial.println("Command handler initialized");
@@ -24,7 +25,9 @@ void CommandHandler::init() {
 }
 
 void CommandHandler::processCommand(CommandParser& parser) {
-    const char* cmd = parser.getCommand();
+    const char* cmd = _parser.getCommand();
+    if (!cmd)
+        return;
 
 #ifdef DEBUG
     Serial.print("Processing command: ");
@@ -34,13 +37,13 @@ void CommandHandler::processCommand(CommandParser& parser) {
     // Check for ESTOP first
     if (strcmp(cmd, "ESTOP") == 0) {
         _estop.activate();
-        parser.sendResponse("OK", "ESTOP_ACTIVATED");
+        _parser.sendResponse("OK", "ESTOP_ACTIVATED");
         return;
     }
 
     // If ESTOP is active, only allow certain commands
     if (_estop.isActive() && strcmp(cmd, "STATUS") != 0 && strcmp(cmd, "RESET_ESTOP") != 0) {
-        parser.sendResponse("ERROR", "ESTOP_ACTIVE");
+        _parser.sendResponse("ERROR", "ESTOP_ACTIVE");
         return;
     }
 
@@ -48,16 +51,18 @@ void CommandHandler::processCommand(CommandParser& parser) {
     if (strcmp(cmd, "RESET_ESTOP") == 0) {
         bool success = _estop.reset();
         if (success) {
-            parser.sendResponse("OK", "ESTOP_RESET");
+            _parser.sendResponse("OK", "ESTOP_RESET");
         } else {
-            parser.sendResponse("ERROR", "ESTOP_STILL_ACTIVE");
+            _parser.sendResponse("ERROR", "ESTOP_STILL_ACTIVE");
         }
         return;
     }
 
     // Process command by category
-    if (strcmp(cmd, "PING") == 0 || strcmp(cmd, "RESET") == 0 || strcmp(cmd, "STATUS") == 0 ||
-        strcmp(cmd, "DEBUG") == 0) {
+    if (strcmp(cmd, "PING") == 0) {
+        _parser.sendResponse("OK", "PONG");
+    } else if (strcmp(cmd, "RESET") == 0 || strcmp(cmd, "STATUS") == 0 ||
+               strcmp(cmd, "DEBUG") == 0) {
         handleSystemCommands();
     } else if (strcmp(cmd, "HOME") == 0 || strcmp(cmd, "MOVE") == 0 || strcmp(cmd, "STOP") == 0 ||
                strcmp(cmd, "VELOCITY") == 0) {
@@ -70,10 +75,9 @@ void CommandHandler::processCommand(CommandParser& parser) {
                strcmp(cmd, "SAVE") == 0) {
         handleConfigCommands();
     } else {
-        parser.sendResponse("ERROR", "UNKNOWN_COMMAND");
+        _parser.sendResponse("ERROR", "UNKNOWN_COMMAND");
     }
 }
-
 void CommandHandler::handleSystemCommands() {
     const char* cmd = _parser.getCommand();
 
@@ -103,11 +107,11 @@ void CommandHandler::handleSystemCommands() {
             const char* mode = _parser.getParam(0);
             if (strcmp(mode, "ON") == 0) {
                 _debugMode = true;
-                _rangefinder.setVerbose(true);
+                _rangefinder.setDebug(
+                    true);  // Assuming this method exists based on _debugEnabled in rangefinder.cpp
                 _parser.sendResponse("OK", "DEBUG_ENABLED");
             } else if (strcmp(mode, "OFF") == 0) {
                 _debugMode = false;
-                _rangefinder.setVerbose(false);
                 _parser.sendResponse("OK", "DEBUG_DISABLED");
             } else {
                 _parser.sendResponse("ERROR", "INVALID_PARAM");
@@ -235,7 +239,7 @@ void CommandHandler::handleServoCommands() {
     if (strcmp(cmd, "TILT") == 0) {
         if (_parser.getParamCount() > 0) {
             float angle = _parser.getParamAsFloat(0);
-            bool success = _motion.setTiltAngle(angle);
+            bool success = _motion.setPanAngle(static_cast<int32_t>(angle));
 
             if (success) {
                 _parser.sendResponse("OK", "TILT_SET");
@@ -248,7 +252,8 @@ void CommandHandler::handleServoCommands() {
     } else if (strcmp(cmd, "PAN") == 0) {
         if (_parser.getParamCount() > 0) {
             float angle = _parser.getParamAsFloat(0);
-            bool success = _motion.setPanAngle(angle);
+            bool success = _motion.setPanAngle(
+                static_cast<int32_t>(angle));  // angle is float, but method expects int32_t
 
             if (success) {
                 _parser.sendResponse("OK", "PAN_SET");
@@ -260,6 +265,8 @@ void CommandHandler::handleServoCommands() {
         }
     }
 }
+
+#define DEFAULT_VELOCITY_LIMIT 100  // Add at the top of the file
 
 void CommandHandler::handleConfigCommands() {
     const char* cmd = _parser.getCommand();

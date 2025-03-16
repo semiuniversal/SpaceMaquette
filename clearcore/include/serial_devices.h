@@ -1,28 +1,41 @@
 #ifndef SERIAL_DEVICES_H
 #define SERIAL_DEVICES_H
 
+#include "macros.h"
+
+// If you have STL includes, protect them
+PROTECT_STD_MINMAX
+// Add any STL includes here
+RESTORE_MINMAX
+
+// Arduino/ClearCore includes
 #include <Arduino.h>
 
-// Define device types as enum outside the class for broader access
-enum DeviceType { DEVICE_NONE = 0, DEVICE_RANGEFINDER = 1, DEVICE_TILT_SERVO = 2 };
+#include "ClearCore.h"
 
 class SerialDevices {
 public:
-    // Bring DeviceType enum into class scope for convenience
-    static const DeviceType NONE = DEVICE_NONE;
-    static const DeviceType RANGEFINDER = DEVICE_RANGEFINDER;
-    static const DeviceType TILT_SERVO = DEVICE_TILT_SERVO;
+    enum DeviceType { NONE = 0, RANGEFINDER = 1, CAMERA = 2, TILT_SERVO = 3 };
 
+    // Constructor with ClearCorePins parameter
+    SerialDevices(ClearCorePins serialPin);
+
+    // Constructor with HardwareSerial and relay pin
     SerialDevices(HardwareSerial &serial, int relayPin);
-    ~SerialDevices();
 
-    // Initialize the serial device manager
+    // Initialize the serial devices
+    bool init(unsigned long baudRate = 115200);
+
+    // Begin serial communication
     void begin(unsigned long baudRate);
+
+    // Select active device
+    bool selectDevice(DeviceType device);
 
     // Switch to a specific device
     bool switchToDevice(DeviceType device);
 
-    // Get current active device
+    // Get the currently active device
     DeviceType getCurrentDevice() const;
 
     // Check if a device is currently active
@@ -31,16 +44,18 @@ public:
     // Serial communication methods
     size_t write(uint8_t data);
     size_t write(const uint8_t *buffer, size_t size);
+    size_t write(const char *str);  // Add string version for convenience
     int available();
     int read();
     int peek();
     void flush();
 
 private:
-    HardwareSerial &_serial;
+    HardwareSerial *_serial;
     int _relayPin;
     DeviceType _currentDevice;
     unsigned long _baudRate;
+    ClearCorePins _serialPin;
 };
 
 #endif  // SERIAL_DEVICES_H

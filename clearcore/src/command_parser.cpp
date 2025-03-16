@@ -2,9 +2,11 @@
  * Space Maquette - Command Parser Implementation
  */
 
-#include "../include/command_parser.h"
+#include "command_parser.h"
 
 #include <stdarg.h>
+
+#include "command_parser.h"
 
 CommandParser::CommandParser(Stream& serial)
     : _serial(serial),
@@ -12,7 +14,6 @@ CommandParser::CommandParser(Stream& serial)
       _cmdIndex(0),
       _commandComplete(false),
       _paramCount(0) {}
-
 void CommandParser::init() {
     reset();
 

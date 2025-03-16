@@ -31,7 +31,7 @@
 
 // Create system objects
 CommandParser parser(Serial0);  // Using Serial0 for COM0 (host communication)
-SerialDevices serialDevices(RELAY_PIN);
+SerialDevices serialDevices;
 Rangefinder rangefinder(serialDevices);
 TiltServo tiltServo(serialDevices);
 MotionControl motion;  // Standard initialization, tilt servo handled separately
@@ -118,12 +118,4 @@ void loop() {
     if (motion.isMoving() && !estop.isActive()) {
         motion.update();
     }
-
-// Check stack usage periodically
-#ifdef STACK_MONITORING_ENABLED
-    checkStackUsage();
-#endif
-
-    // Small delay to prevent CPU hogging
-    delay(1);
 }

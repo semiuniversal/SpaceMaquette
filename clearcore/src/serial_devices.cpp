@@ -1,88 +1,136 @@
 #include "serial_devices.h"
 
-// Constructor
+// Constructor with ClearCorePins
+SerialDevices::SerialDevices(ClearCorePins serialPin)
+    : _serial(nullptr),
+      _relayPin(-1),
+      _currentDevice(NONE),
+      _baudRate(115200),
+      _serialPin(serialPin) {}
+
+// Constructor with HardwareSerial
 SerialDevices::SerialDevices(HardwareSerial &serial, int relayPin)
-    : _serial(serial), _relayPin(relayPin), _currentDevice(NONE), _baudRate(0) {
-    // Initialize relay pin as output
-    pinMode(_relayPin, OUTPUT);
-    // Default state (neither device active)
-    digitalWrite(_relayPin, LOW);
+    : _serial(&serial),
+      _relayPin(relayPin),
+      _currentDevice(NONE),
+      _baudRate(115200),
+      _serialPin(static_cast<ClearCorePins>(-1)) {}
+
+bool SerialDevices::init(unsigned long baudRate) {
+    _baudRate = baudRate;
+
+    if (_serial != nullptr) {
+        _serial->begin(baudRate);
+    } else {
+        // Initialize using ClearCorePins if that's what was provided
+        // Add appropriate initialization code here
+    }
+
+    // Initialize relay pin if used
+    if (_relayPin >= 0) {
+        pinMode(_relayPin, OUTPUT);
+        digitalWrite(_relayPin, LOW);
+    }
+
+    return true;
 }
 
-// Destructor
-SerialDevices::~SerialDevices() {
-    // Ensure both devices are inactive when this object is destroyed
-    _currentDevice = NONE;
-    digitalWrite(_relayPin, LOW);
-}
-
-// Initialize the serial device manager
 void SerialDevices::begin(unsigned long baudRate) {
     _baudRate = baudRate;
-    _serial.begin(_baudRate);
-    _currentDevice = NONE;
-    // Ensure both devices are inactive initially
-    digitalWrite(_relayPin, LOW);
+
+    if (_serial != nullptr) {
+        _serial->begin(baudRate);
+    } else {
+        // Initialize using ClearCorePins if that's what was provided
+        // Add appropriate initialization code here
+    }
 }
 
-// Switch to a specific device
+bool SerialDevices::selectDevice(DeviceType device) {
+    return switchToDevice(device);
+}
+
 bool SerialDevices::switchToDevice(DeviceType device) {
-    // If already on the requested device, do nothing
     if (_currentDevice == device) {
-        return true;
+        return true;  // Already selected
     }
 
-    // Set relay state based on requested device
-    switch (device) {
-        case NONE:
-            digitalWrite(_relayPin, LOW);  // Neither device active
-            break;
-        case RANGEFINDER:
-            digitalWrite(_relayPin, LOW);  // Activate rangefinder (relay off)
-            break;
-        case TILT_SERVO:
-            digitalWrite(_relayPin, HIGH);  // Activate tilt servo (relay on)
-            break;
-        default:
-            return false;  // Invalid device
+    // Handle device switching logic
+    if (_relayPin >= 0) {
+        switch (device) {
+            case RANGEFINDER:
+                digitalWrite(_relayPin, LOW);
+                break;
+            case TILT_SERVO:
+                digitalWrite(_relayPin, HIGH);
+                break;
+            case CAMERA:
+                // Add camera-specific logic
+                break;
+            case NONE:
+            default:
+                // No device selected
+                break;
+        }
     }
 
-    // Update current device
     _currentDevice = device;
     return true;
 }
 
-// Get current active device
-DeviceType SerialDevices::getCurrentDevice() const {
+SerialDevices::DeviceType SerialDevices::getCurrentDevice() const {
     return _currentDevice;
 }
 
-// Check if a device is currently active
 bool SerialDevices::isDeviceActive(DeviceType device) const {
     return _currentDevice == device;
 }
 
-// Serial communication methods - these simply pass through to the HardwareSerial object
+// Serial communication methods
 size_t SerialDevices::write(uint8_t data) {
-    return _serial.write(data);
+    if (_serial != nullptr) {
+        return _serial->write(data);
+    }
+    return 0;
 }
 
 size_t SerialDevices::write(const uint8_t *buffer, size_t size) {
-    return _serial.write(buffer, size);
+    if (_serial != nullptr) {
+        return _serial->write(buffer, size);
+    }
+    return 0;
+}
+
+size_t SerialDevices::write(const char *str) {
+    if (_serial != nullptr) {
+        return _serial->write(str);
+    }
+    return 0;
 }
 
 int SerialDevices::available() {
-    return _serial.available();
+    if (_serial != nullptr) {
+        return _serial->available();
+    }
+    return 0;
 }
 
 int SerialDevices::read() {
-    return _serial.read();
+    if (_serial != nullptr) {
+        return _serial->read();
+    }
+    return -1;
 }
 
 int SerialDevices::peek() {
-    return _serial.peek();
+    if (_serial != nullptr) {
+        return _serial->peek();
+    }
+    return -1;
 }
 
 void SerialDevices::flush() {
-    _serial.flush();
+    if (_serial != nullptr) {
+        _serial->flush();
+    }
 }

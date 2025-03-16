@@ -2,7 +2,20 @@
  * Space Maquette - Configuration Manager Implementation
  */
 
-#include "../include/configuration_manager.h"
+#include "macros.h"
+
+// Protect STL min/max before including STL headers
+PROTECT_STD_MINMAX
+#include <algorithm>
+// Add any other STL includes here
+RESTORE_MINMAX
+
+#include "configuration_manager.h"
+
+// Replace any min/max calls with sm::min and sm::max
+// For example:
+// Change: int value = min(a, b);
+// To:     int value = sm::min(a, b);
 
 // Constructor
 ConfigurationManager::ConfigurationManager(const char* configFile)
@@ -11,15 +24,17 @@ ConfigurationManager::ConfigurationManager(const char* configFile)
 // Initialize the configuration manager
 bool ConfigurationManager::init() {
     // Initialize SD card
-    _sdInitialized = SD.begin();
-
+    if (!SD.begin()) {
 #ifdef DEBUG
-    if (!_sdInitialized) {
-        Serial.println("Failed to initialize SD card");
-    } else {
-        Serial.println("SD card initialized");
-    }
+        Serial.println("SD card initialization failed!");
 #endif
+        _sdInitialized = false;
+    } else {
+        _sdInitialized = true;
+#ifdef DEBUG
+        Serial.println("SD card initialized.");
+#endif
+    }
 
     // Try to load configuration file
     if (_sdInitialized) {

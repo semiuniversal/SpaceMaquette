@@ -84,7 +84,7 @@ bool TiltServo::waitForAck() {
 
     // Buffer for response
     char buffer[32];
-    int bufferIndex = 0;
+    size_t bufferIndex = 0;
 
     while (millis() - startTime < timeout) {
         if (_serialDevices.available()) {
@@ -113,7 +113,6 @@ bool TiltServo::waitForAck() {
     log("ACK timeout");
     return false;
 }
-
 void TiltServo::setDebug(bool enable) {
     _debugEnabled = enable;
 }

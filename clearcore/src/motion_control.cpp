@@ -1,5 +1,17 @@
-// motion_control.cpp
+#include "macros.h"
+
+// Protect STL min/max before including STL headers
+PROTECT_STD_MINMAX
+#include <algorithm>
+// Add any other STL includes here
+RESTORE_MINMAX
+
 #include "motion_control.h"
+
+// Replace any min/max calls with sm::min and sm::max
+// For example:
+// Change: int value = min(a, b);
+// To:     int value = sm::min(a, b);
 
 // Constructor
 MotionControl::MotionControl() {
@@ -78,12 +90,6 @@ bool MotionControl::init() {
     if (_tiltServo != nullptr) {
         _tiltServo->setLimits(_tiltMinAngle, _tiltMaxAngle);
         _tiltServo->setAngle(_tiltHomeAngle);  // Go to safe home position immediately
-        _tiltEnabled = true;
-    } else {
-#ifdef DEBUG
-        Serial.println("WARNING: No tilt servo configured");
-#endif
-        _tiltEnabled = false;
     }
 
     _initialized = true;
