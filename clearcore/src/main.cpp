@@ -1,8 +1,6 @@
 #include <Arduino.h>
 
 #include "ClearCore.h"
-#include "stack-debug.h"
-
 /**
  * Space Maquette - Main Program
  *
