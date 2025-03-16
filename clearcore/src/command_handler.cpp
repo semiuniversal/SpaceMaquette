@@ -5,11 +5,13 @@
 #include "../include/command_handler.h"
 
 CommandHandler::CommandHandler(CommandParser& parser, MotionControl& motion,
-                               Rangefinder& rangefinder, EmergencyStop& estop)
+                               Rangefinder& rangefinder, EmergencyStop& estop,
+                               ConfigurationManager& config)
     : _parser(parser),
       _motion(motion),
       _rangefinder(rangefinder),
       _estop(estop),
+      _config(config),
       _debugMode(false) {}
 
 void CommandHandler::init() {
@@ -64,6 +66,9 @@ void CommandHandler::processCommand(CommandParser& parser) {
         handleRangefinderCommands();
     } else if (strcmp(cmd, "TILT") == 0 || strcmp(cmd, "PAN") == 0) {
         handleServoCommands();
+    } else if (strcmp(cmd, "CONFIG") == 0 || strcmp(cmd, "GET") == 0 || strcmp(cmd, "SET") == 0 ||
+               strcmp(cmd, "SAVE") == 0) {
+        handleConfigCommands();
     } else {
         parser.sendResponse("ERROR", "UNKNOWN_COMMAND");
     }
@@ -252,6 +257,85 @@ void CommandHandler::handleServoCommands() {
             }
         } else {
             _parser.sendResponse("ERROR", "MISSING_PARAM");
+        }
+    }
+}
+
+void CommandHandler::handleConfigCommands() {
+    const char* cmd = _parser.getCommand();
+
+    if (strcmp(cmd, "CONFIG") == 0) {
+        if (_parser.getParamCount() > 0) {
+            const char* subCmd = _parser.getParam(0);
+
+            if (strcmp(subCmd, "LOAD") == 0) {
+                bool success = _config.loadConfig();
+                if (success) {
+                    _parser.sendResponse("OK", "CONFIG_LOADED");
+                } else {
+                    _parser.sendResponse("ERROR", "CONFIG_LOAD_FAILED");
+                }
+            } else if (strcmp(subCmd, "SAVE") == 0) {
+                bool success = _config.saveConfig();
+                if (success) {
+                    _parser.sendResponse("OK", "CONFIG_SAVED");
+                } else {
+                    _parser.sendResponse("ERROR", "CONFIG_SAVE_FAILED");
+                }
+            } else if (strcmp(subCmd, "LIST") == 0) {
+                // This would require adding a method to list all configuration items
+                // For now, just acknowledge the command
+                _parser.sendResponse("OK", "CONFIG_LIST_NOT_IMPLEMENTED");
+            } else {
+                _parser.sendResponse("ERROR", "INVALID_CONFIG_COMMAND");
+            }
+        } else {
+            _parser.sendResponse("ERROR", "MISSING_CONFIG_COMMAND");
+        }
+    } else if (strcmp(cmd, "GET") == 0) {
+        if (_parser.getParamCount() > 0) {
+            const char* key = _parser.getParam(0);
+
+            if (_config.hasKey(key)) {
+                String value = _config.getString(key, "");
+                _parser.sendResponse("OK", value.c_str());
+            } else {
+                _parser.sendResponse("ERROR", "KEY_NOT_FOUND");
+            }
+        } else {
+            _parser.sendResponse("ERROR", "MISSING_KEY");
+        }
+    } else if (strcmp(cmd, "SET") == 0) {
+        if (_parser.getParamCount() >= 2) {
+            const char* key = _parser.getParam(0);
+            const char* value = _parser.getParam(1);
+
+            _config.setString(key, value);
+            _parser.sendResponse("OK", "VALUE_SET");
+
+            // Apply certain configuration values immediately
+            if (strcmp(key, "tilt_min") == 0) {
+                _motion.setTiltLimits(_config.getInt("tilt_min", 45),
+                                      _config.getInt("tilt_max", 135));
+            } else if (strcmp(key, "tilt_max") == 0) {
+                _motion.setTiltLimits(_config.getInt("tilt_min", 45),
+                                      _config.getInt("tilt_max", 135));
+            } else if (strcmp(key, "velocity_x") == 0) {
+                _motion.setVelocity(_config.getInt("velocity_x", DEFAULT_VELOCITY_LIMIT),
+                                    _config.getInt("velocity_y", DEFAULT_VELOCITY_LIMIT),
+                                    _config.getInt("velocity_z", DEFAULT_VELOCITY_LIMIT));
+            }
+            // Add more immediate application cases as needed
+
+        } else {
+            _parser.sendResponse("ERROR", "MISSING_PARAMS");
+        }
+    } else if (strcmp(cmd, "SAVE") == 0) {
+        bool success = _config.saveConfig();
+        if (success) {
+            _parser.sendResponse("OK", "CONFIG_SAVED");
+        } else {
+            _parser.sendResponse("ERROR", "CONFIG_SAVE_FAILED");
         }
     }
 }

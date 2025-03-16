@@ -106,6 +106,9 @@ public:
     bool setTiltAngle(int angle);
     bool setPanAngle(int32_t angle);
 
+    // Set tilt servo angle limits
+    void setTiltLimits(int minAngle, int maxAngle);
+
     // Status functions
     bool isEnabled(char axis);
     bool hasError();

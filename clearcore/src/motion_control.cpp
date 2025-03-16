@@ -553,6 +553,26 @@ int32_t MotionControl::getCurrentPosition(char axis) {
     }
 }
 
+// Set the tilt servo angle limits
+void MotionControl::setTiltLimits(int minAngle, int maxAngle) {
+    if (minAngle >= 0 && minAngle < maxAngle && maxAngle <= 180) {
+        _tiltMinAngle = minAngle;
+        _tiltMaxAngle = maxAngle;
+
+#ifdef DEBUG
+        Serial.print("Tilt limits set to min=");
+        Serial.print(_tiltMinAngle);
+        Serial.print(", max=");
+        Serial.println(_tiltMaxAngle);
+#endif
+    }
+#ifdef DEBUG
+    else {
+        Serial.println("ERROR: Invalid tilt limits");
+    }
+#endif
+}
+
 // Set the tilt servo angle
 bool MotionControl::setTiltAngle(int angle) {
     if (!_tiltEnabled) {
