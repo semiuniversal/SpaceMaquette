@@ -31,7 +31,7 @@
 
 // Create system objects
 CommandParser parser(Serial0);  // Using Serial0 for COM0 (host communication)
-SerialDevices serialDevices;
+SerialDevices serialDevices(Serial1, RELAY_PIN);  // Using Serial1 (COM1) with relay pin
 Rangefinder rangefinder(serialDevices);
 TiltServo tiltServo(serialDevices);
 MotionControl motion;  // Standard initialization, tilt servo handled separately
@@ -58,7 +58,7 @@ void setup() {
     parser.init();
     motion.setTiltServo(&tiltServo);  // Connect the tilt servo to motion control
     motion.init();
-    rangefinder.init();
+    rangefinder.begin();  // Using begin() instead of init()
     estop.init();
 
     // Initialize and load configuration
@@ -72,8 +72,9 @@ void setup() {
 #endif
 
     // Initialize tilt servo with configuration parameters
-    bool tiltInitSuccess =
-        tiltServo.init(config.getInt("tilt_min", 45), config.getInt("tilt_max", 135));
+    tiltServo.begin();  // Using begin() instead of init()
+    tiltServo.setLimits(config.getInt("tilt_min", 45), config.getInt("tilt_max", 135));
+    bool tiltInitSuccess = true;
 
 #ifdef DEBUG
     if (tiltInitSuccess) {
