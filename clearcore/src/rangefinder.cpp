@@ -1,10 +1,8 @@
 #include "macros.h"
 
-// Protect STL min/max before including STL headers
-PROTECT_STD_MINMAX
+// Include STL headers directly - no protection needed with our new approach
 #include <algorithm>
 // Add any other STL includes here
-RESTORE_MINMAX
 
 #include "rangefinder.h"
 #include "serial_devices.h"  // Make sure it's explicitly included
@@ -75,6 +73,7 @@ float Rangefinder::takeMeasurement() {
     // Return last valid measurement on error
     return _lastMeasurement;
 }
+
 float Rangefinder::getLastMeasurement() const {
     return _lastMeasurement;
 }

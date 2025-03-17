@@ -1,10 +1,10 @@
 /**
- * @brief Command parser for processing serial commands from a host device
+ * Space Maquette - Command Parser
  *
- * Parses incoming serial commands with a specific format: <CMD>:<PARAMS>;<CRC>\n
- * Supports command parsing, parameter extraction, and response generation
+ * Handles parsing and processing of serial commands from the host.
  *
- * Command format example: MOVE:100.5,200.3,50.0;A5\n
+ * Format: <CMD>:<PARAMS>;<CRC>\n
+ * Example: MOVE:100.5,200.3,50.0;A5\n
  *
  * Key features:
  * - Buffers and parses incoming characters
@@ -12,29 +12,16 @@
  * - Provides checksum verification
  * - Allows setting custom command handler callbacks
  */
-/**
- * Space Maquette - Command Parser
- *
- * Handles parsing and processing of serial commands from the host.
- *
- * Format: <CMD>:<PARAMS>;<CRC>\n
- * Example: MOVE:100.5,200.3,50.0;A5\n
- */
 
 #ifndef COMMAND_PARSER_H
 #define COMMAND_PARSER_H
 
 #include "macros.h"
 
-// Protect STL min/max before including STL headers
-PROTECT_STD_MINMAX
-
+// Include STL headers directly - no protection needed with our new approach
 #include <algorithm>
 #include <functional>
 // Add any other STL includes here
-
-// Restore min/max macros after STL includes
-RESTORE_MINMAX
 
 // Arduino/ClearCore includes
 #include <Arduino.h>
@@ -51,11 +38,18 @@ public:
     static const int PARAM_BUFFER_SIZE = 256;
     static const int MAX_PARAMS = 10;
 
-    // Constructor
+    // Constructors
     CommandParser();
+    CommandParser(Stream& serial);
+
+    // Initialization
+    void init();
 
     // Process incoming character
     void processChar(char c);
+
+    // Process all available serial data (more efficient than processChar)
+    bool update();
 
     // Check if a complete command is available
     bool hasCommand() const;
@@ -69,10 +63,9 @@ public:
     // Get parameter at index
     const char* getParam(int index) const;
 
-    // Get parameter as float
+    // Get parameter as numeric value
     float getParamAsFloat(int index) const;
-
-    CommandParser(Stream& serial);
+    int getParamAsInt(int index) const;
 
     // Response methods
     void sendResponse(const char* status, const char* message);
@@ -82,6 +75,9 @@ public:
     void setCommandHandler(CommandHandlerCallback handler);
 
 private:
+    // Serial connection reference
+    Stream* _serial;
+
     // Buffer for incoming data
     char _buffer[CMD_BUFFER_SIZE];
     int _bufferIndex;
@@ -96,7 +92,7 @@ private:
     int _paramCount;
 
     // Command handler callback
-    CommandHandlerCallback _commandHandler;
+    CommandHandlerCallback _cmdHandler;
 
     // Reset the parser state
     void reset();

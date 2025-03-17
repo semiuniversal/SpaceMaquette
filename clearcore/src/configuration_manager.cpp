@@ -4,18 +4,11 @@
 
 #include "macros.h"
 
-// Protect STL min/max before including STL headers
-PROTECT_STD_MINMAX
+// Include STL headers directly - no protection needed with our new approach
 #include <algorithm>
 // Add any other STL includes here
-RESTORE_MINMAX
 
 #include "configuration_manager.h"
-
-// Replace any min/max calls with sm::min and sm::max
-// For example:
-// Change: int value = min(a, b);
-// To:     int value = sm::min(a, b);
 
 // Constructor
 ConfigurationManager::ConfigurationManager(const char* configFile)

@@ -3,10 +3,8 @@
 
 #include "macros.h"
 
-// If you have STL includes, protect them
-PROTECT_STD_MINMAX
+// Include STL headers directly - no protection needed with our new approach
 // Add any STL includes here
-RESTORE_MINMAX
 
 // Arduino/ClearCore includes
 #include <Arduino.h>
