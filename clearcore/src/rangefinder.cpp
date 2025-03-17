@@ -1,8 +1,10 @@
 #include "macros.h"
 
-// Include STL headers directly - no protection needed with our new approach
+// Protect STL min/max before including STL headers
+PROTECT_STD_MINMAX
 #include <algorithm>
 // Add any other STL includes here
+RESTORE_MINMAX
 
 #include "rangefinder.h"
 #include "serial_devices.h"  // Make sure it's explicitly included
