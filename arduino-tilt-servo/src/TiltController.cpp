@@ -25,12 +25,19 @@ void blinkLED(int times) {
 void processSerialData() {
     while (Serial.available() > 0 && !commandComplete) {
         char c = Serial.read();
+        if (DEBUG_ENABLED) {
+            Serial.print(c);
+        }
 
         // Handle end of command
         if (c == '\n' || c == '\r') {
             if (bufferIndex > 0) {
                 cmdBuffer[bufferIndex] = '\0';  // Null terminate
                 commandComplete = true;
+                if (DEBUG_ENABLED) {
+                    Serial.print("Received: ");
+                    Serial.println(cmdBuffer);
+                }
                 break;
             }
         }
@@ -55,6 +62,10 @@ void processCommand() {
         currentAngle = angle;
 
         // Send acknowledgment
+        if (DEBUG_ENABLED) {
+            Serial.print("Angle set to ");
+            Serial.println(angle);
+        }
         Serial.println("OK");
 
         // Indicate command processed

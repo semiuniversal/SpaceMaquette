@@ -46,7 +46,7 @@ void setup() {
     tiltServo.write(DEFAULT_ANGLE);
 
     // Indicate ready
-    blinkLED(3);
+    blinkLED(10);
 }
 
 void loop() {

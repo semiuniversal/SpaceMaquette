@@ -1,6 +1,6 @@
 /*
  * Space Maquette - Arduino Tilt Controller
- * 
+ *
  * Header file containing support functions for the tilt controller.
  */
 #ifndef TILT_CONTROLLER_H
@@ -8,6 +8,8 @@
 
 #include <Arduino.h>
 #include <Servo.h>
+
+#include "../includes/debug.h"
 
 // Pin Definitions
 const int SERVO_PIN = 9;        // PWM pin for servo control
@@ -26,7 +28,7 @@ const int MIN_ANGLE = 0;          // Minimum allowed angle
 const int MAX_ANGLE = 180;        // Maximum allowed angle
 
 // Command Processing
-const int BUFFER_SIZE = 32;
+const int BUFFER_SIZE = 255;
 extern char cmdBuffer[BUFFER_SIZE];
 extern int bufferIndex;
 extern bool commandComplete;
@@ -43,4 +45,4 @@ void blinkLED(int times);
 void processSerialData();
 void processCommand();
 
-#endif // TILT_CONTROLLER_H
+#endif  // TILT_CONTROLLER_H
