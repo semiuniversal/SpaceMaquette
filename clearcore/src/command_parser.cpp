@@ -230,7 +230,7 @@ bool CommandParser::verifyChecksum() {
 
     // Extract received checksum (hexadecimal after semicolon)
     uint16_t receivedCRC = 0;
-    sscanf(semicolonPos + 1, "%x", &receivedCRC);
+    sscanf(semicolonPos + 1, "%hx", &receivedCRC);  // Use %hx for uint16_t
 
 #ifdef DEBUG
     Serial.print("Checksum: calculated=0x");

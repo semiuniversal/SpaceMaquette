@@ -203,11 +203,13 @@ void CommandHandler::handleRangefinderCommands() {
         }
     } else if (strcmp(cmd, "SCAN") == 0) {
         if (_parser.getParamCount() >= 5) {
+#ifdef DEBUG
             float x1 = _parser.getParamAsFloat(0);
             float y1 = _parser.getParamAsFloat(1);
             float x2 = _parser.getParamAsFloat(2);
             float y2 = _parser.getParamAsFloat(3);
             float step = _parser.getParamAsFloat(4);
+#endif
 
             // Start scan operation
             // This would typically be implemented as a state machine
@@ -265,8 +267,6 @@ void CommandHandler::handleServoCommands() {
         }
     }
 }
-
-#define DEFAULT_VELOCITY_LIMIT 100  // Add at the top of the file
 
 void CommandHandler::handleConfigCommands() {
     const char* cmd = _parser.getCommand();

@@ -20,6 +20,7 @@
 #include "../include/rangefinder.h"
 #include "../include/serial_devices.h"
 #include "../include/tilt_servo.h"
+#include "ethernet_device.h"
 
 // Enable debug output to USB serial
 #define DEBUG 1
@@ -29,8 +30,12 @@
 #define RELAY_PIN IO0
 // Remove TILT_SERVO_PIN definition as it's already defined in motion_control.h
 
+// Ethernet configuration
+#define ETHERNET_PORT 8080
+
 // Create system objects
-CommandParser parser(Serial0);  // Using Serial0 for COM0 (host communication)
+EthernetDevice ethernetDevice(ETHERNET_PORT);     // Using Ethernet for host communication
+CommandParser parser(ethernetDevice);             // Using Ethernet instead of Serial0
 SerialDevices serialDevices(Serial1, RELAY_PIN);  // Using Serial1 (COM1) with relay pin
 Rangefinder rangefinder(serialDevices);
 TiltServo tiltServo(serialDevices);
@@ -44,11 +49,21 @@ void setup() {
     Serial.begin(115200);
     delay(2000);  // Allow time for USB connection if debugging
 
-    Serial.println("Space Maquette Controller v1.0");
+    Serial.println("Space Maquette Controller v1.0 (Ethernet)");
     Serial.println("----------------------------------");
 
-    // Initialize host communication serial port (COM0)
-    Serial0.begin(115200);
+    // Initialize Ethernet for host communication
+    bool ethernetInitSuccess = ethernetDevice.init();
+#ifdef DEBUG
+    if (ethernetInitSuccess) {
+        Serial.print("Ethernet initialized successfully. IP: ");
+        Serial.println(ethernetDevice.getIpAddressString());
+        Serial.print("Listening on port: ");
+        Serial.println(ETHERNET_PORT);
+    } else {
+        Serial.println("WARNING: Failed to initialize Ethernet");
+    }
+#endif
 
     // Initialize serial devices module (controls COM1 access)
     serialDevices.init();
@@ -106,6 +121,9 @@ void setup() {
 }
 
 void loop() {
+    // Update Ethernet connection
+    ethernetDevice.update();
+
     // Check for emergency stop condition
     if (estop.check()) {
         // ESTOP newly activated
