@@ -1,0 +1,2 @@
+[console_scripts]
+clearcore-comms = clearcore_comms_test.cli:cli
