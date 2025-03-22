@@ -15,7 +15,7 @@
 class ConfigurationManager {
 public:
     // Constructor
-    ConfigurationManager(const char* configFile = "/config.txt");
+    ConfigurationManager(const char* configFile = "CONFIG.TXT");
 
     // Initialization
     bool init();
@@ -43,6 +43,9 @@ public:
 
     // Clear all configuration
     void clear();
+
+    // Debug - dump all configuration items to Serial
+    void dumpConfig();
 
 private:
     // Config file path

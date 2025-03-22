@@ -1,0 +1,21 @@
+{
+    "name": "space-maquette-server",
+    "version": "1.0.0",
+    "description": "Backend server for Space Maquette project",
+    "main": "src/index.js",
+    "scripts": {
+      "start": "node src/index.js",
+      "dev": "nodemon src/index.js",
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+      "body-parser": "^1.20.1",
+      "cors": "^2.8.5",
+      "express": "^4.18.2",
+      "socket.io": "^4.8.1",
+      "sqlite3": "^5.1.4"
+    },
+    "devDependencies": {
+      "nodemon": "^2.0.20"
+    }
+  }

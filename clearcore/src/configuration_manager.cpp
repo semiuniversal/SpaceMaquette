@@ -18,17 +18,17 @@ ConfigurationManager::ConfigurationManager(const char* configFile)
 
 // Initialize the configuration manager
 bool ConfigurationManager::init() {
-    // Initialize SD card
-    if (!SD.begin()) {
-#ifdef DEBUG
-        Serial.println("SD card initialization failed!");
-#endif
+    // Initialize SD card with proper CS pin - IO5 is likely the SD card CS pin on ClearCore
+    if (!SD.begin(IO5)) {
+        #ifdef DEBUG
+            Serial.println("SD card initialization failed!");
+        #endif
         _sdInitialized = false;
     } else {
         _sdInitialized = true;
-#ifdef DEBUG
-        Serial.println("SD card initialized.");
-#endif
+        #ifdef DEBUG
+            Serial.println("SD card initialized.");
+        #endif
     }
 
     // Try to load configuration file
@@ -315,4 +315,55 @@ bool ConfigurationManager::parseConfigLine(const String& line) {
 // Format a configuration item as a string
 String ConfigurationManager::formatConfigLine(const ConfigItem& item) {
     return item.key + "=" + item.value;
+}
+
+void ConfigurationManager::dumpConfig() {
+#ifdef DEBUG
+    Serial.println("\nConfiguration Settings:");
+    Serial.println("------------------------");
+
+    if (!_sdInitialized) {
+        Serial.println("ERROR: SD card not initialized!");
+        Serial.println("Configuration values are defaults only.");
+        Serial.println("------------------------");
+    }
+
+    if (_configCount == 0) {
+        Serial.println("WARNING: No configuration items loaded!");
+        Serial.println("Check if file exists: " + _configFilePath);
+
+        // Check if the file exists
+        if (_sdInitialized) {
+            if (SD.exists(_configFilePath)) {
+                Serial.println("File exists but no valid settings were found.");
+
+                // Try to print first few lines for diagnosis
+                File configFile = SD.open(_configFilePath);
+                if (configFile) {
+                    Serial.println("File contents sample:");
+                    for (int i = 0; i < 5 && configFile.available(); i++) {
+                        Serial.println(configFile.readStringUntil('\n'));
+                    }
+                    configFile.close();
+                }
+            } else {
+                Serial.println("File does not exist.");
+            }
+        }
+        Serial.println("------------------------");
+        return;
+    }
+
+    // Print all configuration items
+    for (int i = 0; i < _configCount; i++) {
+        Serial.print(_configData[i].key);
+        Serial.print(" = ");
+        Serial.println(_configData[i].value);
+    }
+
+    Serial.println("------------------------");
+    Serial.print("Total items: ");
+    Serial.println(_configCount);
+    Serial.println();
+#endif
 }

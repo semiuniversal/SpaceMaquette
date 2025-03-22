@@ -1,0 +1,123 @@
+Table shows {
+  id integer [pk]
+  work_name varchar [not null]
+  artist varchar [not null]
+  created text [not null]
+  materials varchar [not null]
+  scale varchar
+  length varchar
+  width varchar
+  height varchar
+  map integer
+  lights integer
+  use_backdrop boolean [default: 0]
+  backdrop_rgb varchar
+  backdrop_model varchar
+  current_scan integer
+  pano boolean [default: 0]
+  created_at timestamp [default: "CURRENT_TIMESTAMP"]
+  updated_at timestamp [default: "CURRENT_TIMESTAMP"]
+}
+
+Table map {
+  id integer [pk, ref: > shows.map]
+  image varchar
+  x integer
+  y integer
+  z integer
+  go boolean [default: 1]
+  pano_low varchar
+  pano_high varchar
+  created_at timestamp [default: "CURRENT_TIMESTAMP"]
+  updated_at timestamp [default: "CURRENT_TIMESTAMP"]
+}
+
+Table light {
+  id integer [pk]
+  name varchar [not null]
+  description varchar
+  created_at timestamp [default: "CURRENT_TIMESTAMP"]
+  updated_at timestamp [default: "CURRENT_TIMESTAMP"]
+}
+
+Table lights {
+  id integer [pk, ref: > shows.lights]
+  light integer [not null, ref: > light.id]
+  rgb varchar [not null]
+  created_at timestamp [default: "CURRENT_TIMESTAMP"]
+  updated_at timestamp [default: "CURRENT_TIMESTAMP"]
+}
+
+Table scans {
+  id integer [pk, ref: > shows.current_scan]
+  show integer [not null, ref: > shows.id]
+  type varchar [not null]
+  complete boolean [default: 0]
+  x1 integer [not null]
+  y1 integer [not null]
+  x2 integer [not null]
+  y2 integer [not null]
+  last_x integer
+  last_y integer [not null]
+  created_at timestamp [default: "CURRENT_TIMESTAMP"]
+  updated_at timestamp [default: "CURRENT_TIMESTAMP"]
+}
+
+Table settings {
+  id integer [pk, increment]
+  system_name varchar [not null]
+  firmware_version varchar [not null]
+  serial_number varchar [not null]
+  velocity_x integer [not null]
+  velocity_y integer [not null]
+  velocity_z integer [not null]
+  acceleration_x integer [not null]
+  acceleration_y integer [not null]
+  acceleration_z integer [not null]
+  max_jerk_x integer [not null]
+  max_jerk_y integer [not null]
+  max_jerk_z integer [not null]
+  rangefinder_offset_x decimal(5,2) [not null]
+  rangefinder_offset_y decimal(5,2) [not null]
+  min_distance integer [not null]
+  max_distance integer [not null]
+  collision_margin integer [not null]
+  tilt_min integer [not null]
+  tilt_max integer [not null]
+  tilt_center integer [not null]
+  tilt_speed integer [not null]
+  home_velocity_x integer [not null]
+  home_velocity_y integer [not null]
+  home_velocity_z integer [not null]
+  home_direction_x integer [not null]
+  home_direction_y integer [not null]
+  home_direction_z integer [not null]
+  stage_min_x integer [not null]
+  stage_min_y integer [not null]
+  stage_min_z integer [not null]
+  stage_max_x integer [not null]
+  stage_max_y integer [not null]
+  stage_max_z integer [not null]
+  ethernet_port integer [not null]
+  ethernet_dhcp boolean [not null]
+  ethernet_static_ip varchar [not null]
+  ethernet_static_netmask varchar [not null]
+  ethernet_static_gateway varchar [not null]
+  ethernet_timeout integer [not null]
+  ethernet_heartbeat integer [not null]
+  ethernet_reconnect boolean [not null]
+  ethernet_logging boolean [not null]
+  ethernet_log_file varchar [not null]
+  ethernet_log_level integer [not null]
+  debug integer [not null]
+  debug_level integer [not null]
+  log_commands boolean [not null]
+  log_file varchar [not null]
+  created_at timestamp [default: "CURRENT_TIMESTAMP"]
+  updated_at timestamp [default: "CURRENT_TIMESTAMP"]
+}
+
+Table sqlite_sequence {
+  name varchar
+  seq integer
+}

@@ -8,5 +8,9 @@
 			"path": "clearcore"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"ostream": "cpp"
+		}
+	}
 }
