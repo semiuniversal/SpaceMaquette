@@ -33,7 +33,7 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/api/obs', obsRouter);
+// app.use('/api/obs', obsRouter);
 
 // Set up database
 setupDatabase();
