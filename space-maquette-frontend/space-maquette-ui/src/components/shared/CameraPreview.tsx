@@ -1,22 +1,20 @@
-// src/components/shared/CameraPreview.tsx
-import React, { useState } from 'react';
-import { Box, Paper } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Card, CardContent, Typography, IconButton } from '@mui/material';
+import { Fullscreen, FullscreenExit } from '@mui/icons-material';
 
 interface CameraPreviewProps {
-  streamUrl?: string;
   fullscreen: boolean;
   onFullscreenToggle: () => void;
 }
 
 const CameraPreview: React.FC<CameraPreviewProps> = ({
-  streamUrl = 'https://example.com/stream', // Placeholder URL
   fullscreen,
-  onFullscreenToggle
+  onFullscreenToggle,
 }) => {
   const [spacePressed, setSpacePressed] = useState(false);
 
   // Handle spacebar press for fullscreen toggle
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code === 'Space' && !spacePressed) {
         setSpacePressed(true);
@@ -45,12 +43,11 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
   }, [fullscreen, onFullscreenToggle, spacePressed]);
 
   return (
-    <Paper 
-      elevation={2} 
-      sx={{ 
+    <Card
+      sx={{
         height: '100%',
-        position: 'relative',
-        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
         ...(fullscreen && {
           position: 'fixed',
           top: 0,
@@ -59,48 +56,24 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
           bottom: 0,
           zIndex: 9999,
           borderRadius: 0,
-        })
+        }),
       }}
     >
-      {/* Rest of component remains the same */}
       <Box
-        component="div"
         sx={{
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'black',
+          position: 'relative',
+          backgroundColor: '#111',
+          flexGrow: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          position: 'relative',
         }}
       >
+        <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+          Camera preview not available
+        </Typography>
+
         <Box
-          component="div"
-          sx={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 25a25 25 0 1 0 0 50 25 25 0 0 0 0-50zm0 45a20 20 0 1 1 0-40 20 20 0 0 1 0 40zm-5-20a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm15 0a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm-7.5 10a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15z' fill='%23ffffff' fill-opacity='0.1'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'repeat',
-            '&::before': {
-              content: '"Camera Preview"',
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              textShadow: '0 0 10px rgba(0,0,0,0.5)',
-            }
-          }}
-        />
-        
-        <Box
-          component="div"
           sx={{
             position: 'absolute',
             bottom: 10,
@@ -115,7 +88,13 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
           Press SPACE for fullscreen
         </Box>
       </Box>
-    </Paper>
+
+      <CardContent sx={{ py: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          Camera integration will be added in a future update
+        </Typography>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -75,15 +75,11 @@ const ConfigCommands: React.FC<ConfigCommandsProps> = ({
   };
   
   const handleConfigLoad = async () => {
-    await onSendCommand('CONFIG LOAD');
-  };
-  
-  const handleConfigSave = async () => {
-    await onSendCommand('CONFIG SAVE');
+    await onSendCommand('CONFIG', ['LOAD']);
   };
   
   const handleConfigList = async () => {
-    await onSendCommand('CONFIG LIST');
+    await onSendCommand('CONFIG', ['LIST']);
   };
   
   const handleGetConfig = async () => {
@@ -118,7 +114,7 @@ const ConfigCommands: React.FC<ConfigCommandsProps> = ({
       </Typography>
       
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={4}>
+        <Grid item xs={6}>
           <Button 
             variant="outlined" 
             color="primary"
@@ -130,19 +126,7 @@ const ConfigCommands: React.FC<ConfigCommandsProps> = ({
           </Button>
         </Grid>
         
-        <Grid item xs={4}>
-          <Button 
-            variant="outlined" 
-            color="primary"
-            fullWidth
-            onClick={handleConfigSave}
-            disabled={!connected}
-          >
-            CONFIG SAVE
-          </Button>
-        </Grid>
-        
-        <Grid item xs={4}>
+        <Grid item xs={6}>
           <Button 
             variant="outlined" 
             color="primary"
