@@ -1,0 +1,24 @@
+// space-maquette-server/src/config/movementConfig.json
+{
+  "keyboard": {
+    "moveSpeed": 100, // Units per second
+    "rotationSpeed": 0.2, // Degrees per pixel
+    "tiltConstraints": {
+      // Degrees
+      "min": 45,
+      "max": 135
+    },
+    "acceleration": 2.0, // Acceleration multiplier
+    "deceleration": 3.0 // Deceleration multiplier
+  },
+  "motion": {
+    "xyStep": 50, // mm per button press
+    "zStep": 20, // mm per button press
+    "panStep": 15, // degrees per button press
+    "tiltStep": 5 // degrees per button press
+  },
+  "collision": {
+    "enabled": true,
+    "margin": 30 // mm safety margin
+  }
+}

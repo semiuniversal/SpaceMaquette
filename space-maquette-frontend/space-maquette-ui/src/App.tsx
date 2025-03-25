@@ -14,23 +14,19 @@ import { WebSocketProvider, useWebSocket } from './contexts/WebSocketContext';
 const AppContent: React.FC = () => {
   // Local state
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentMode, setCurrentMode] = useState<'curator' | 'debug'>('curator');
+  const [currentMode, setCurrentMode] = useState<'curator' | 'debug'>(
+    'curator'
+  );
   const [cameraFullscreen, setCameraFullscreen] = useState(false);
   const [zMode, setZMode] = useState<'auto' | 'manual'>('auto');
-  const [keyboardMode, setKeyboardMode] = useState(false);
-  
+
   // Artwork data
   const [title, setTitle] = useState('Cosmic Drift');
   const [artist, setArtist] = useState('Jane Doe');
-  
+
   // WebSocket context
-  const { 
-    position, 
-    systemStatus, 
-    sendCommand, 
-    connected 
-  } = useWebSocket();
-  
+  const { position, systemStatus, sendCommand, connected } = useWebSocket();
+
   // Effect to fetch artwork data from the server
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -45,15 +41,15 @@ const AppContent: React.FC = () => {
         console.error('Failed to fetch metadata:', error);
       }
     };
-    
+
     fetchMetadata();
   }, []);
-  
+
   // Handlers
   const handleMenuToggle = () => {
     setSidebarOpen(!sidebarOpen);
   };
-  
+
   const handleEmergencyStop = async () => {
     if (systemStatus.eStop) {
       await sendCommand('RESET_ESTOP');
@@ -61,32 +57,45 @@ const AppContent: React.FC = () => {
       await sendCommand('ESTOP');
     }
   };
-  
+
   const handleModeChange = (mode: 'curator' | 'debug') => {
     setCurrentMode(mode);
     setSidebarOpen(false);
   };
-  
+
   const handleOpenMetadataDialog = () => {
     // This will be implemented once we have the ShowMetadataDialog component
     console.log('Open metadata dialog');
     setSidebarOpen(false);
   };
-  
+
   const handleOpenCameraMenu = () => {
     // For now, just toggle fullscreen as a placeholder
     setCameraFullscreen(!cameraFullscreen);
     setSidebarOpen(false);
   };
-  
-  const handleMove = async (direction: 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-' | 'pan+' | 'pan-' | 'tilt+' | 'tilt-' | 'stop') => {
+
+  const handleMove = async (
+    direction:
+      | 'x+'
+      | 'x-'
+      | 'y+'
+      | 'y-'
+      | 'z+'
+      | 'z-'
+      | 'pan+'
+      | 'pan-'
+      | 'tilt+'
+      | 'tilt-'
+      | 'stop'
+  ) => {
     if (direction === 'stop') {
       await sendCommand('STOP');
       return;
     }
-    
+
     const newPosition = { ...position };
-    
+
     switch (direction) {
       case 'x+':
         newPosition.x += 10;
@@ -119,21 +128,17 @@ const AppContent: React.FC = () => {
         await sendCommand('TILT', [Math.max(newPosition.tilt - 5, 45)]);
         return;
     }
-    
+
     await sendCommand('MOVE', [newPosition.x, newPosition.y, newPosition.z]);
   };
-  
+
   const handleZModeToggle = () => {
     setZMode(zMode === 'auto' ? 'manual' : 'auto');
   };
-  
-  const handleKeyboardModeToggle = () => {
-    setKeyboardMode(!keyboardMode);
-  };
-  
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <Header 
+      <Header
         title={currentMode === 'curator' ? title : 'Debug Mode'}
         artist={currentMode === 'curator' ? artist : ''}
         onMenuToggle={handleMenuToggle}
@@ -141,8 +146,8 @@ const AppContent: React.FC = () => {
         onEmergencyStop={handleEmergencyStop}
         connected={connected}
       />
-      
-      <Sidebar 
+
+      <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         currentMode={currentMode}
@@ -151,51 +156,53 @@ const AppContent: React.FC = () => {
         onOpenMetadataDialog={handleOpenMetadataDialog}
         onOpenCameraMenu={handleOpenCameraMenu}
       />
-      
+
       <Box component="main" sx={{ flexGrow: 1, p: 2, overflow: 'hidden' }}>
         {currentMode === 'curator' ? (
           <Grid container spacing={2} sx={{ height: 'calc(100vh - 120px)' }}>
             {/* Top row */}
             <Grid item xs={12} md={6} sx={{ height: '50%' }}>
-              <CameraPreview 
+              <CameraPreview
                 fullscreen={cameraFullscreen}
-                onFullscreenToggle={() => setCameraFullscreen(!cameraFullscreen)}
+                onFullscreenToggle={() =>
+                  setCameraFullscreen(!cameraFullscreen)
+                }
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6} sx={{ height: '50%' }}>
               <ControlPanel title="Map Preview">
-                <Box sx={{ 
-                  height: '100%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  bgcolor: 'background.default',
-                  borderRadius: 1,
-                  color: 'text.secondary'
-                }}>
+                <Box
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'background.default',
+                    borderRadius: 1,
+                    color: 'text.secondary',
+                  }}
+                >
                   Map Preview Content
                 </Box>
               </ControlPanel>
             </Grid>
-            
+
             {/* Bottom row */}
             <Grid item xs={12} md={6} sx={{ height: '50%' }}>
               <ControlPanel title="Motion Controls">
-                <MotionControls 
+                <MotionControls
                   onMove={handleMove}
                   zMode={zMode}
                   onZModeToggle={handleZModeToggle}
-                  keyboardMode={keyboardMode}
-                  onKeyboardModeToggle={handleKeyboardModeToggle}
                   isMoving={systemStatus.clearCoreStatus === 'MOVING'}
                   disableZButtons={zMode === 'auto'}
                 />
               </ControlPanel>
             </Grid>
-            
+
             <Grid item xs={12} md={6} sx={{ height: '50%' }}>
-              <StatusDisplay 
+              <StatusDisplay
                 position={position}
                 clearCoreStatus={systemStatus.clearCoreStatus}
                 rangefinderActive={systemStatus.rangefinderActive}
@@ -205,7 +212,7 @@ const AppContent: React.FC = () => {
             </Grid>
           </Grid>
         ) : (
-          <DebugMode 
+          <DebugMode
             position={position}
             clearCoreStatus={systemStatus.clearCoreStatus}
             rangefinderActive={systemStatus.rangefinderActive}

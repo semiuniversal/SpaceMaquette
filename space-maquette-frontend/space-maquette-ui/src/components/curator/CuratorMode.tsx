@@ -9,7 +9,13 @@ import ShowMetadataDialog from './ShowMetadataDialog';
 import BackdropConfigDialog from './BackdropConfigDialog';
 import ScanRegionDialog from './ScanRegionDialog';
 import ScanProgressDialog from './ScanProgressDialog';
-import { ShowMetadata, BackdropSettings, NoGoRegion, ScanRegion, Position } from '../../types';
+import {
+  ShowMetadata,
+  BackdropSettings,
+  NoGoRegion,
+  ScanRegion,
+  Position,
+} from '../../types';
 
 interface CuratorModeProps {
   position: Position;
@@ -17,7 +23,20 @@ interface CuratorModeProps {
   rangefinderActive: boolean;
   eStop: boolean;
   servoStatus: string;
-  onMove: (direction: 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-' | 'pan+' | 'pan-' | 'tilt+' | 'tilt-' | 'stop') => void;
+  onMove: (
+    direction:
+      | 'x+'
+      | 'x-'
+      | 'y+'
+      | 'y-'
+      | 'z+'
+      | 'z-'
+      | 'pan+'
+      | 'pan-'
+      | 'tilt+'
+      | 'tilt-'
+      | 'stop'
+  ) => void;
   zMode: 'auto' | 'manual';
   onZModeToggle: () => void;
   keyboardMode: boolean;
@@ -34,17 +53,17 @@ const CuratorMode: React.FC<CuratorModeProps> = ({
   zMode,
   onZModeToggle,
   keyboardMode,
-  onKeyboardModeToggle
+  onKeyboardModeToggle,
 }) => {
   // State for dialogs
   const [showMetadataDialogOpen, setShowMetadataDialogOpen] = useState(false);
   const [backdropDialogOpen, setBackdropDialogOpen] = useState(false);
   const [scanRegionDialogOpen, setScanRegionDialogOpen] = useState(false);
   const [scanProgressDialogOpen, setScanProgressDialogOpen] = useState(false);
-  
+
   // State for camera
   const [cameraFullscreen, setCameraFullscreen] = useState(false);
-  
+
   // Mock data
   const [metadata, setMetadata] = useState<ShowMetadata>({
     title: 'Cosmic Drift',
@@ -52,18 +71,18 @@ const CuratorMode: React.FC<CuratorModeProps> = ({
     date: '2025',
     materials: 'Mixed media, electronics',
     dimensions: '200 × 150 × 100 cm',
-    description: 'An interactive installation exploring spatial relationships.'
+    description: 'An interactive installation exploring spatial relationships.',
   });
-  
+
   const [backdropSettings, setBackdropSettings] = useState<BackdropSettings>({
     type: 'natural',
     chromaKeyTransparency: 75,
     solidColor: '#000000',
-    skyboxSelection: 'Space Nebula'
+    skyboxSelection: 'Space Nebula',
   });
-  
+
   const [noGoRegions, setNoGoRegions] = useState<NoGoRegion[]>([]);
-  
+
   const [currentScanRegion, setCurrentScanRegion] = useState<ScanRegion>({
     id: 'scan-001',
     x1: 50,
@@ -72,69 +91,69 @@ const CuratorMode: React.FC<CuratorModeProps> = ({
     y2: 150,
     step: 1,
     estimatedTime: 600,
-    status: 'pending'
+    status: 'pending',
   });
-  
+
   // Handlers
   const handleShowMetadataSave = (newMetadata: ShowMetadata) => {
     setMetadata(newMetadata);
     // In a real implementation, this would send the data to the server
   };
-  
+
   const handleBackdropSettingsSave = (newSettings: BackdropSettings) => {
     setBackdropSettings(newSettings);
     // In a real implementation, this would send the data to the server
   };
-  
+
   const handleNoGoRegionsChange = (regions: NoGoRegion[]) => {
     setNoGoRegions(regions);
     // In a real implementation, this would send the data to the server
   };
-  
+
   const handleTakeOverheadImage = () => {
     // In a real implementation, this would send a command to take an overhead image
     console.log('Taking overhead image');
   };
-  
+
   const handleScanRegion = () => {
     setScanRegionDialogOpen(true);
   };
-  
+
   const handleStartScan = (region: ScanRegion) => {
     setCurrentScanRegion(region);
     setScanProgressDialogOpen(true);
     // In a real implementation, this would send a command to start scanning
   };
-  
+
   const handlePauseScan = () => {
     // In a real implementation, this would send a command to pause scanning
     console.log('Pausing scan');
   };
-  
+
   const handleResumeScan = () => {
     // In a real implementation, this would send a command to resume scanning
     console.log('Resuming scan');
   };
-  
+
   const handleCancelScan = () => {
     setScanProgressDialogOpen(false);
     // In a real implementation, this would send a command to cancel scanning
     console.log('Canceling scan');
   };
-  
+
   return (
     <Grid container spacing={2} sx={{ height: 'calc(100vh - 120px)' }}>
       {/* Top row */}
       <Grid item xs={12} md={6} sx={{ height: '50%' }}>
-        <CameraPreview 
+        <CameraPreview
           fullscreen={cameraFullscreen}
           onFullscreenToggle={() => setCameraFullscreen(!cameraFullscreen)}
         />
       </Grid>
-      
+
       <Grid item xs={12} md={6} sx={{ height: '50%' }}>
         <ControlPanel title="Map Preview">
-          <MapPreview 
+          <MapPreview
             noGoRegions={noGoRegions}
             onNoGoRegionsChange={handleNoGoRegionsChange}
             onTakeOverheadImage={handleTakeOverheadImage}
@@ -143,65 +162,63 @@ const CuratorMode: React.FC<CuratorModeProps> = ({
           />
         </ControlPanel>
       </Grid>
-      
+
       {/* Bottom row */}
       <Grid item xs={12} md={6} sx={{ height: '50%' }}>
         <ControlPanel title="Motion Controls">
-          <MotionControls 
+          <MotionControls
             onMove={onMove}
             zMode={zMode}
             onZModeToggle={onZModeToggle}
-            keyboardMode={keyboardMode}
-            onKeyboardModeToggle={onKeyboardModeToggle}
           />
         </ControlPanel>
       </Grid>
-      
+
       <Grid item xs={12} md={6} sx={{ height: '50%' }}>
-        <StatusDisplay 
+        <StatusDisplay
           position={position}
           clearCoreStatus={clearCoreStatus}
           rangefinderActive={rangefinderActive}
           eStop={eStop}
           servoStatus={servoStatus}
         />
-        
+
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
           <Box>
-            <Box 
+            <Box
               component="button"
               onClick={() => setShowMetadataDialogOpen(true)}
-              sx={{ 
-                px: 2, 
-                py: 1, 
-                bgcolor: 'primary.main', 
+              sx={{
+                px: 2,
+                py: 1,
+                bgcolor: 'primary.main',
                 color: 'white',
                 border: 'none',
                 borderRadius: 1,
                 cursor: 'pointer',
                 mr: 1,
                 '&:hover': {
-                  bgcolor: 'primary.dark'
-                }
+                  bgcolor: 'primary.dark',
+                },
               }}
             >
               Show Metadata
             </Box>
-            
-            <Box 
+
+            <Box
               component="button"
               onClick={() => setBackdropDialogOpen(true)}
-              sx={{ 
-                px: 2, 
-                py: 1, 
-                bgcolor: 'secondary.main', 
+              sx={{
+                px: 2,
+                py: 1,
+                bgcolor: 'secondary.main',
                 color: 'white',
                 border: 'none',
                 borderRadius: 1,
                 cursor: 'pointer',
                 '&:hover': {
-                  bgcolor: 'secondary.dark'
-                }
+                  bgcolor: 'secondary.dark',
+                },
               }}
             >
               Configure Backdrop
@@ -209,31 +226,31 @@ const CuratorMode: React.FC<CuratorModeProps> = ({
           </Box>
         </Box>
       </Grid>
-      
+
       {/* Dialogs */}
-      <ShowMetadataDialog 
+      <ShowMetadataDialog
         open={showMetadataDialogOpen}
         onClose={() => setShowMetadataDialogOpen(false)}
         metadata={metadata}
         onSave={handleShowMetadataSave}
       />
-      
-      <BackdropConfigDialog 
+
+      <BackdropConfigDialog
         open={backdropDialogOpen}
         onClose={() => setBackdropDialogOpen(false)}
         settings={backdropSettings}
         onSave={handleBackdropSettingsSave}
       />
-      
-      <ScanRegionDialog 
+
+      <ScanRegionDialog
         open={scanRegionDialogOpen}
         onClose={() => setScanRegionDialogOpen(false)}
         onStartScan={handleStartScan}
         mapWidth={300}
         mapHeight={300}
       />
-      
-      <ScanProgressDialog 
+
+      <ScanProgressDialog
         open={scanProgressDialogOpen}
         onClose={() => setScanProgressDialogOpen(false)}
         scanRegion={currentScanRegion}

@@ -1,20 +1,31 @@
 // src/components/shared/MotionControls.tsx
 import React from 'react';
 import { Box, Grid, Typography, Button } from '@mui/material';
-import { 
-  ArrowUpward, 
-  ArrowDownward, 
-  ArrowBack, 
-  ArrowForward, 
-  Stop 
+import {
+  ArrowUpward,
+  ArrowDownward,
+  ArrowBack,
+  ArrowForward,
+  Stop,
 } from '@mui/icons-material';
 
 interface MotionControlsProps {
-  onMove: (direction: 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-' | 'pan+' | 'pan-' | 'tilt+' | 'tilt-' | 'stop') => void;
+  onMove: (
+    direction:
+      | 'x+'
+      | 'x-'
+      | 'y+'
+      | 'y-'
+      | 'z+'
+      | 'z-'
+      | 'pan+'
+      | 'pan-'
+      | 'tilt+'
+      | 'tilt-'
+      | 'stop'
+  ) => void;
   zMode: 'auto' | 'manual';
   onZModeToggle: () => void;
-  keyboardMode: boolean;
-  onKeyboardModeToggle: () => void;
   isMoving?: boolean;
   disableZButtons?: boolean;
 }
@@ -23,22 +34,21 @@ const MotionControls: React.FC<MotionControlsProps> = ({
   onMove,
   zMode,
   onZModeToggle,
-  keyboardMode,
-  onKeyboardModeToggle,
   isMoving = false,
-  disableZButtons = false
+  disableZButtons = false,
 }) => {
   return (
     <Box sx={{ p: 1 }}>
       <Typography variant="subtitle2" gutterBottom>
-        XY Controls {isMoving && <span style={{ color: '#f44336' }}>(Moving...)</span>}
+        XY Controls{' '}
+        {isMoving && <span style={{ color: '#f44336' }}>(Moving...)</span>}
       </Typography>
-      
+
       <Grid container spacing={1} justifyContent="center" sx={{ mb: 2 }}>
         <Grid item xs={4} />
         <Grid item xs={4} sx={{ textAlign: 'center' }}>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="primary"
             onClick={() => onMove('y+')}
             startIcon={<ArrowUpward />}
@@ -48,10 +58,10 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           </Button>
         </Grid>
         <Grid item xs={4} />
-        
+
         <Grid item xs={4} sx={{ textAlign: 'right' }}>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="primary"
             onClick={() => onMove('x-')}
             startIcon={<ArrowBack />}
@@ -61,8 +71,8 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           </Button>
         </Grid>
         <Grid item xs={4} sx={{ textAlign: 'center' }}>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="error"
             onClick={() => onMove('stop')}
             startIcon={<Stop />}
@@ -72,8 +82,8 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           </Button>
         </Grid>
         <Grid item xs={4} sx={{ textAlign: 'left' }}>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="primary"
             onClick={() => onMove('x+')}
             startIcon={<ArrowForward />}
@@ -82,11 +92,11 @@ const MotionControls: React.FC<MotionControlsProps> = ({
             X+
           </Button>
         </Grid>
-        
+
         <Grid item xs={4} />
         <Grid item xs={4} sx={{ textAlign: 'center' }}>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="primary"
             onClick={() => onMove('y-')}
             startIcon={<ArrowDownward />}
@@ -97,7 +107,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
         </Grid>
         <Grid item xs={4} />
       </Grid>
-      
+
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={6}>
           <Typography variant="subtitle2" gutterBottom>
@@ -105,8 +115,8 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           </Typography>
           <Grid container spacing={1}>
             <Grid item xs={12}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={() => onMove('z+')}
                 startIcon={<ArrowUpward />}
@@ -117,8 +127,8 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               </Button>
             </Grid>
             <Grid item xs={12}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={() => onMove('z-')}
                 startIcon={<ArrowDownward />}
@@ -129,7 +139,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               </Button>
             </Grid>
             <Grid item xs={12}>
-              <Button 
+              <Button
                 variant={zMode === 'auto' ? 'contained' : 'outlined'}
                 color="secondary"
                 onClick={onZModeToggle}
@@ -140,15 +150,15 @@ const MotionControls: React.FC<MotionControlsProps> = ({
             </Grid>
           </Grid>
         </Grid>
-        
+
         <Grid item xs={6}>
           <Typography variant="subtitle2" gutterBottom>
             Pan/Tilt
           </Typography>
           <Grid container spacing={1}>
             <Grid item xs={6}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={() => onMove('pan-')}
                 startIcon={<ArrowBack />}
@@ -158,8 +168,8 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               </Button>
             </Grid>
             <Grid item xs={6}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={() => onMove('pan+')}
                 startIcon={<ArrowForward />}
@@ -169,8 +179,8 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               </Button>
             </Grid>
             <Grid item xs={6}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={() => onMove('tilt+')}
                 startIcon={<ArrowUpward />}
@@ -180,8 +190,8 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               </Button>
             </Grid>
             <Grid item xs={6}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={() => onMove('tilt-')}
                 startIcon={<ArrowDownward />}
@@ -193,22 +203,14 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           </Grid>
         </Grid>
       </Grid>
-      
-      <Button 
-        variant={keyboardMode ? 'contained' : 'outlined'}
-        color="secondary"
-        onClick={onKeyboardModeToggle}
-        fullWidth
-        sx={{ mt: 1 }}
+
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: 'block', mt: 1, textAlign: 'center' }}
       >
-        {keyboardMode ? 'Exit Keyboard Mode' : 'Keyboard Control Mode'}
-      </Button>
-      
-      {keyboardMode && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
-          Use WASD to move, mouse to look, spacebar for fullscreen
-        </Typography>
-      )}
+        Press and hold spacebar for keyboard/mouse control mode
+      </Typography>
     </Box>
   );
 };

@@ -14,6 +14,13 @@ const {
   addScanData,
 } = require('./state');
 
+// Import motion solver
+const {
+  processKeyboardMovement,
+  processMouseLook,
+  processButtonMovement,
+} = require('./motion-solver');
+
 // Import routes and database setup
 const apiRoutes = require('./routes/api');
 const { setupDatabase } = require('./database/setup');
@@ -363,6 +370,18 @@ function processCommand(command, params = []) {
         }
         break;
 
+      case 'PAN':
+        if (params.length < 1) {
+          status = 'ERROR';
+          message = 'MISSING_PARAM';
+        } else {
+          const angle = parseFloat(params[0]);
+          // Normalize to 0-360
+          const normalizedAngle = ((angle % 360) + 360) % 360;
+          updatePosition({ pan: normalizedAngle });
+          message = 'PAN_SET';
+        }
+        break;
       case 'TILT':
         if (params.length < 1) {
           status = 'ERROR';
@@ -602,6 +621,86 @@ io.on('connection', (socket) => {
 
   // Send initial system status
   socket.emit('systemStatus', { ...systemState });
+
+  // Handle keyboard movement
+  socket.on('keyboard_movement', (data) => {
+    if (systemState.eStop) {
+      return;
+    }
+
+    logDebug('Keyboard movement received:', data);
+
+    // Process movement through motion solver
+    const newPosition = processKeyboardMovement(data);
+
+    // Update system status to show movement
+    updateSystemStatus({ clearCoreStatus: 'MOVING', servoStatus: 'ACTIVE' });
+
+    // Broadcast updated position
+    io.emit('systemStatus', { ...systemState });
+
+    // Reset status after a short delay
+    setTimeout(() => {
+      updateSystemStatus({ clearCoreStatus: 'READY', servoStatus: 'IDLE' });
+      io.emit('systemStatus', { ...systemState });
+    }, 100);
+  });
+
+  // Handle mouse look
+  socket.on('mouse_look', (data) => {
+    if (systemState.eStop) {
+      return;
+    }
+
+    logDebug('Mouse look received:', data);
+
+    // Process look through motion solver
+    const newOrientation = processMouseLook(data);
+
+    // Update system status
+    updateSystemStatus({ servoStatus: 'ACTIVE' });
+
+    // Broadcast updated position
+    io.emit('systemStatus', { ...systemState });
+
+    // Reset status after a short delay
+    setTimeout(() => {
+      updateSystemStatus({ servoStatus: 'IDLE' });
+      io.emit('systemStatus', { ...systemState });
+    }, 100);
+  });
+
+  // Handle button movement
+  socket.on('button_movement', (data) => {
+    if (systemState.eStop) {
+      return;
+    }
+
+    const { direction } = data;
+    logDebug('Button movement received:', direction);
+
+    if (direction === 'stop') {
+      // Handle stop command
+      updateSystemStatus({ clearCoreStatus: 'READY', servoStatus: 'IDLE' });
+      io.emit('systemStatus', { ...systemState });
+      return;
+    }
+
+    // Process movement through motion solver
+    const newPosition = processButtonMovement(direction);
+
+    // Update system status to show movement
+    updateSystemStatus({ clearCoreStatus: 'MOVING', servoStatus: 'ACTIVE' });
+
+    // Broadcast updated position
+    io.emit('systemStatus', { ...systemState });
+
+    // Reset status after a short delay
+    setTimeout(() => {
+      updateSystemStatus({ clearCoreStatus: 'READY', servoStatus: 'IDLE' });
+      io.emit('systemStatus', { ...systemState });
+    }, 100);
+  });
 
   // Handle command requests
   socket.on('command', (data, callback) => {
