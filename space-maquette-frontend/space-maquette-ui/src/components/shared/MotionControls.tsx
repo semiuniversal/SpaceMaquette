@@ -8,9 +8,24 @@ import {
   ArrowForward,
   Stop,
 } from '@mui/icons-material';
+import { useWebSocket } from '../../contexts/WebSocketContext';
 
 interface MotionControlsProps {
-  onMove: (
+  zMode: 'auto' | 'manual';
+  onZModeToggle: () => void;
+  isMoving?: boolean;
+  disableZButtons?: boolean;
+}
+
+const MotionControls: React.FC<MotionControlsProps> = ({
+  zMode,
+  onZModeToggle,
+  isMoving = false,
+  disableZButtons = false,
+}) => {
+  const { socket, position } = useWebSocket();
+
+  const handleMove = (
     direction:
       | 'x+'
       | 'x-'
@@ -23,20 +38,18 @@ interface MotionControlsProps {
       | 'tilt+'
       | 'tilt-'
       | 'stop'
-  ) => void;
-  zMode: 'auto' | 'manual';
-  onZModeToggle: () => void;
-  isMoving?: boolean;
-  disableZButtons?: boolean;
-}
+  ) => {
+    if (!socket) return;
 
-const MotionControls: React.FC<MotionControlsProps> = ({
-  onMove,
-  zMode,
-  onZModeToggle,
-  isMoving = false,
-  disableZButtons = false,
-}) => {
+    console.log(`Sending button movement: ${direction}`);
+
+    if (direction === 'stop') {
+      socket.emit('button_movement', { direction: 'stop' });
+      return;
+    }
+
+    socket.emit('button_movement', { direction });
+  };
   return (
     <Box sx={{ p: 1 }}>
       <Typography variant="subtitle2" gutterBottom>
@@ -50,7 +63,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           <Button
             variant="contained"
             color="primary"
-            onClick={() => onMove('y+')}
+            onClick={() => handleMove('y+')}
             startIcon={<ArrowUpward />}
             fullWidth
           >
@@ -63,7 +76,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           <Button
             variant="contained"
             color="primary"
-            onClick={() => onMove('x-')}
+            onClick={() => handleMove('x-')}
             startIcon={<ArrowBack />}
             fullWidth
           >
@@ -74,7 +87,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           <Button
             variant="contained"
             color="error"
-            onClick={() => onMove('stop')}
+            onClick={() => handleMove('stop')}
             startIcon={<Stop />}
             fullWidth
           >
@@ -85,7 +98,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           <Button
             variant="contained"
             color="primary"
-            onClick={() => onMove('x+')}
+            onClick={() => handleMove('x+')}
             startIcon={<ArrowForward />}
             fullWidth
           >
@@ -98,7 +111,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
           <Button
             variant="contained"
             color="primary"
-            onClick={() => onMove('y-')}
+            onClick={() => handleMove('y-')}
             startIcon={<ArrowDownward />}
             fullWidth
           >
@@ -118,7 +131,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => onMove('z+')}
+                onClick={() => handleMove('z+')}
                 startIcon={<ArrowUpward />}
                 fullWidth
                 disabled={disableZButtons}
@@ -130,7 +143,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => onMove('z-')}
+                onClick={() => handleMove('z-')}
                 startIcon={<ArrowDownward />}
                 fullWidth
                 disabled={disableZButtons}
@@ -160,7 +173,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => onMove('pan-')}
+                onClick={() => handleMove('pan-')}
                 startIcon={<ArrowBack />}
                 fullWidth
               >
@@ -171,7 +184,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => onMove('pan+')}
+                onClick={() => handleMove('pan+')}
                 startIcon={<ArrowForward />}
                 fullWidth
               >
@@ -182,7 +195,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => onMove('tilt+')}
+                onClick={() => handleMove('tilt+')}
                 startIcon={<ArrowUpward />}
                 fullWidth
               >
@@ -193,7 +206,7 @@ const MotionControls: React.FC<MotionControlsProps> = ({
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => onMove('tilt-')}
+                onClick={() => handleMove('tilt-')}
                 startIcon={<ArrowDownward />}
                 fullWidth
               >

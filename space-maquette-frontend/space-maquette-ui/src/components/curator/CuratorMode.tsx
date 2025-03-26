@@ -23,20 +23,6 @@ interface CuratorModeProps {
   rangefinderActive: boolean;
   eStop: boolean;
   servoStatus: string;
-  onMove: (
-    direction:
-      | 'x+'
-      | 'x-'
-      | 'y+'
-      | 'y-'
-      | 'z+'
-      | 'z-'
-      | 'pan+'
-      | 'pan-'
-      | 'tilt+'
-      | 'tilt-'
-      | 'stop'
-  ) => void;
   zMode: 'auto' | 'manual';
   onZModeToggle: () => void;
   keyboardMode: boolean;
@@ -49,7 +35,6 @@ const CuratorMode: React.FC<CuratorModeProps> = ({
   rangefinderActive,
   eStop,
   servoStatus,
-  onMove,
   zMode,
   onZModeToggle,
   keyboardMode,
@@ -167,9 +152,10 @@ const CuratorMode: React.FC<CuratorModeProps> = ({
       <Grid item xs={12} md={6} sx={{ height: '50%' }}>
         <ControlPanel title="Motion Controls">
           <MotionControls
-            onMove={onMove}
             zMode={zMode}
             onZModeToggle={onZModeToggle}
+            isMoving={clearCoreStatus === 'MOVING'}
+            disableZButtons={zMode === 'auto'}
           />
         </ControlPanel>
       </Grid>

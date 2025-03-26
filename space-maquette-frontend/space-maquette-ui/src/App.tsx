@@ -1,4 +1,4 @@
-// Updated App.tsx file
+// Updated App.tsx file - Refactored version
 
 import React, { useState, useEffect } from 'react';
 import { Box, Grid, CssBaseline, ThemeProvider } from '@mui/material';
@@ -77,63 +77,6 @@ const AppContent: React.FC = () => {
     setSidebarOpen(false);
   };
 
-  const handleMove = async (
-    direction:
-      | 'x+'
-      | 'x-'
-      | 'y+'
-      | 'y-'
-      | 'z+'
-      | 'z-'
-      | 'pan+'
-      | 'pan-'
-      | 'tilt+'
-      | 'tilt-'
-      | 'stop'
-  ) => {
-    if (direction === 'stop') {
-      await sendCommand('STOP');
-      return;
-    }
-
-    const newPosition = { ...position };
-
-    switch (direction) {
-      case 'x+':
-        newPosition.x += 10;
-        break;
-      case 'x-':
-        newPosition.x -= 10;
-        break;
-      case 'y+':
-        newPosition.y += 10;
-        break;
-      case 'y-':
-        newPosition.y -= 10;
-        break;
-      case 'z+':
-        newPosition.z += 5;
-        break;
-      case 'z-':
-        newPosition.z -= 5;
-        break;
-      case 'pan+':
-        await sendCommand('PAN', [(newPosition.pan + 15) % 360]);
-        return;
-      case 'pan-':
-        await sendCommand('PAN', [(newPosition.pan - 15 + 360) % 360]);
-        return;
-      case 'tilt+':
-        await sendCommand('TILT', [Math.min(newPosition.tilt + 5, 135)]);
-        return;
-      case 'tilt-':
-        await sendCommand('TILT', [Math.max(newPosition.tilt - 5, 45)]);
-        return;
-    }
-
-    await sendCommand('MOVE', [newPosition.x, newPosition.y, newPosition.z]);
-  };
-
   const handleZModeToggle = () => {
     setZMode(zMode === 'auto' ? 'manual' : 'auto');
   };
@@ -194,7 +137,6 @@ const AppContent: React.FC = () => {
             <Grid item xs={12} md={6} sx={{ height: '50%' }}>
               <ControlPanel title="Motion Controls">
                 <MotionControls
-                  onMove={handleMove}
                   zMode={zMode}
                   onZModeToggle={handleZModeToggle}
                   isMoving={systemStatus.clearCoreStatus === 'MOVING'}

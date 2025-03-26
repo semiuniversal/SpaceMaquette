@@ -278,17 +278,34 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Listen for system status updates
     newSocket.on('systemStatus', (data) => {
-      setPosition(data.position);
-      setSystemStatus((prevStatus) => ({
-        ...prevStatus,
-        clearCoreStatus: data.clearCoreStatus,
-        rangefinderActive: data.rangefinderActive,
-        eStop: data.eStop,
-        servoStatus: data.servoStatus,
-        lastUpdated: new Date().toISOString(),
-      }));
-    });
+      console.log(`Received systemStatus update [${data._updateId}]:`, data);
 
+      if (data.position) {
+        setPosition(data.position);
+      }
+
+      setSystemStatus((prevStatus) => {
+        // Only update if values actually changed to avoid unnecessary rerenders
+        if (
+          prevStatus.clearCoreStatus === data.clearCoreStatus &&
+          prevStatus.rangefinderActive === data.rangefinderActive &&
+          prevStatus.eStop === data.eStop &&
+          prevStatus.servoStatus === data.servoStatus
+        ) {
+          return prevStatus; // No changes needed
+        }
+
+        // Return updated state if anything changed
+        return {
+          ...prevStatus,
+          clearCoreStatus: data.clearCoreStatus,
+          rangefinderActive: data.rangefinderActive,
+          eStop: data.eStop,
+          servoStatus: data.servoStatus,
+          lastUpdated: new Date().toISOString(),
+        };
+      });
+    });
     // Listen for terminal output
     newSocket.on('terminalOutput', (data) => {
       console.log('Received terminalOutput event:', data);

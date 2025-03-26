@@ -286,6 +286,11 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
             name="work_name"
             value={currentShow.work_name}
             onChange={handleInputChange}
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
           />
         </Grid>
 
@@ -297,6 +302,11 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
             name="artist"
             value={currentShow.artist}
             onChange={handleInputChange}
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
           />
         </Grid>
 
@@ -308,6 +318,11 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
             name="created"
             value={currentShow.created}
             onChange={handleInputChange}
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
           />
         </Grid>
 
@@ -319,6 +334,11 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
             name="materials"
             value={currentShow.materials}
             onChange={handleInputChange}
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
           />
         </Grid>
 
@@ -330,6 +350,11 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
             value={currentShow.scale}
             onChange={handleInputChange}
             placeholder="e.g. 1:10"
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
           />
         </Grid>
 
@@ -341,6 +366,11 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
             value={currentShow.length}
             onChange={handleInputChange}
             placeholder="e.g. 80 cm"
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
           />
         </Grid>
 
@@ -352,6 +382,11 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
             value={currentShow.width}
             onChange={handleInputChange}
             placeholder="e.g. 60 cm"
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
           />
         </Grid>
 
@@ -363,21 +398,15 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
             value={currentShow.height}
             onChange={handleInputChange}
             placeholder="e.g. 25 cm"
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
           />
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={currentShow.pano}
-                onChange={handleSwitchChange}
-                name="pano"
-              />
-            }
-            label="Enable Panoramas"
-          />
-        </Grid>
+        {/* Removed "Enable panoramas" toggle */}
 
         <Grid item xs={12}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
@@ -488,7 +517,7 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
               }}
               label="Backdrop Type"
             >
-              <MenuItem value="natural">Natural (Physical Backdrop)</MenuItem>
+              {/* Removed "natural" option */}
               <MenuItem value="chroma-key">Chroma Key</MenuItem>
               <MenuItem value="3d-skybox">3D Skybox</MenuItem>
             </Select>
@@ -530,6 +559,11 @@ const ShowsDialog: React.FC<ShowsDialogProps> = ({ open, onClose }) => {
                 value={currentShow.backdrop_model}
                 onChange={handleInputChange}
                 helperText="Enter path to Unity skybox model file"
+                onKeyDown={(e) => {
+                  if (e.key === ' ') {
+                    e.stopPropagation();
+                  }
+                }}
               />
               <Button
                 variant="outlined"
