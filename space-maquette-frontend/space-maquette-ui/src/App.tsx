@@ -1,4 +1,5 @@
-// src/App.tsx
+// Updated App.tsx file
+
 import React, { useState, useEffect } from 'react';
 import { Box, Grid, CssBaseline, ThemeProvider } from '@mui/material';
 import Header from './components/layout/Header';
@@ -8,6 +9,7 @@ import CameraPreview from './components/shared/CameraPreview';
 import MotionControls from './components/shared/MotionControls';
 import StatusDisplay from './components/shared/StatusDisplay';
 import DebugMode from './components/debug/DebugMode';
+import ShowsDialog from './components/curator/ShowsDialog';
 import theme from './theme';
 import { WebSocketProvider, useWebSocket } from './contexts/WebSocketContext';
 
@@ -19,6 +21,7 @@ const AppContent: React.FC = () => {
   );
   const [cameraFullscreen, setCameraFullscreen] = useState(false);
   const [zMode, setZMode] = useState<'auto' | 'manual'>('auto');
+  const [showsDialogOpen, setShowsDialogOpen] = useState(false);
 
   // Artwork data
   const [title, setTitle] = useState('Cosmic Drift');
@@ -63,9 +66,8 @@ const AppContent: React.FC = () => {
     setSidebarOpen(false);
   };
 
-  const handleOpenMetadataDialog = () => {
-    // This will be implemented once we have the ShowMetadataDialog component
-    console.log('Open metadata dialog');
+  const handleOpenShowsDialog = () => {
+    setShowsDialogOpen(true);
     setSidebarOpen(false);
   };
 
@@ -153,7 +155,7 @@ const AppContent: React.FC = () => {
         currentMode={currentMode}
         onModeChange={handleModeChange}
         systemStatus={systemStatus}
-        onOpenMetadataDialog={handleOpenMetadataDialog}
+        onOpenMetadataDialog={handleOpenShowsDialog}
         onOpenCameraMenu={handleOpenCameraMenu}
       />
 
@@ -221,6 +223,12 @@ const AppContent: React.FC = () => {
           />
         )}
       </Box>
+
+      {/* Shows Dialog */}
+      <ShowsDialog
+        open={showsDialogOpen}
+        onClose={() => setShowsDialogOpen(false)}
+      />
     </Box>
   );
 };

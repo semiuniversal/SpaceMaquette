@@ -1,28 +1,28 @@
 import React, { useState } from 'react';
-import { 
-  Drawer, 
-  List, 
+import {
+  Drawer,
+  List,
   ListItemButton,
-  ListItemIcon, 
-  ListItemText, 
-  Divider, 
-  Box, 
-  Typography, 
-  Chip, 
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Box,
+  Typography,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   IconButton,
   Paper,
-  Button
+  Button,
 } from '@mui/material';
-import { 
+import {
   Dashboard as DashboardIcon,
   Videocam as VideocamIcon,
   Settings as SettingsIcon,
   Code as CodeIcon,
   Info as InfoIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { SystemStatus } from '../../types';
 import { useWebSocket } from '../../contexts/WebSocketContext';
@@ -38,28 +38,29 @@ interface SidebarProps {
 }
 
 // ClearCore server modal component
-const ClearCoreServerModal = ({ open, onClose, clearCoreIp }: { 
-  open: boolean; 
-  onClose: () => void; 
+const ClearCoreServerModal = ({
+  open,
+  onClose,
+  clearCoreIp,
+}: {
+  open: boolean;
+  onClose: () => void;
   clearCoreIp: string | null;
 }) => {
   const serverUrl = clearCoreIp ? `http://${clearCoreIp}:8000` : '';
-  
+
   const handleOpenInNewTab = () => {
     if (serverUrl) window.open(serverUrl, '_blank');
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="md"
-    >
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6">ClearCore File Server</Typography>
-          <IconButton onClick={onClose} size="small"><CloseIcon /></IconButton>
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon />
+          </IconButton>
         </Box>
       </DialogTitle>
       <DialogContent>
@@ -69,23 +70,37 @@ const ClearCoreServerModal = ({ open, onClose, clearCoreIp }: {
           </Box>
         ) : (
           <Box>
-            <Box mb={2} p={2} bgcolor="#f5f5f5" borderRadius={1} display="flex" justifyContent="space-between" alignItems="center">
+            <Box
+              mb={2}
+              p={2}
+              bgcolor="#f5f5f5"
+              borderRadius={1}
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
               <Box>
-                <Typography variant="body1"><strong>ClearCore IP:</strong> {clearCoreIp}</Typography>
+                <Typography variant="body1">
+                  <strong>ClearCore IP:</strong> {clearCoreIp}
+                </Typography>
               </Box>
-              <Button variant="contained" color="primary" onClick={handleOpenInNewTab}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleOpenInNewTab}
+              >
                 Open in New Tab
               </Button>
             </Box>
-            
-            <iframe 
-              src={serverUrl} 
+
+            <iframe
+              src={serverUrl}
               title="ClearCore File Server"
               style={{
                 width: '100%',
                 height: '500px',
                 border: '1px solid #ddd',
-                borderRadius: '4px'
+                borderRadius: '4px',
               }}
             />
           </Box>
@@ -94,19 +109,20 @@ const ClearCoreServerModal = ({ open, onClose, clearCoreIp }: {
     </Dialog>
   );
 };
-const Sidebar: React.FC<SidebarProps> = ({ 
-  open, 
-  onClose, 
-  currentMode, 
+const Sidebar: React.FC<SidebarProps> = ({
+  open,
+  onClose,
+  currentMode,
   onModeChange,
   systemStatus,
   onOpenMetadataDialog,
-  onOpenCameraMenu
+  onOpenCameraMenu,
 }) => {
-  const [clearCoreServerModalOpen, setClearCoreServerModalOpen] = useState(false);
+  const [clearCoreServerModalOpen, setClearCoreServerModalOpen] =
+    useState(false);
   const { clearCoreIp } = useWebSocket();
-  
-  const getStatusColor = (status: boolean) => status ? 'success' : 'error';
+
+  const getStatusColor = (status: boolean) => (status ? 'success' : 'error');
 
   return (
     <>
@@ -131,12 +147,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             v1.0.0
           </Typography>
         </Box>
-        
+
         <Divider />
-        
+
         <List>
           <ListItemButton
-            selected={currentMode === 'curator'} 
+            selected={currentMode === 'curator'}
             onClick={() => onModeChange('curator')}
           >
             <ListItemIcon>
@@ -144,9 +160,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             </ListItemIcon>
             <ListItemText primary="Curator Mode" />
           </ListItemButton>
-          
+
           <ListItemButton
-            selected={currentMode === 'debug'} 
+            selected={currentMode === 'debug'}
             onClick={() => onModeChange('debug')}
           >
             <ListItemIcon>
@@ -155,9 +171,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             <ListItemText primary="Debug Mode" />
           </ListItemButton>
         </List>
-        
+
         <Divider />
-        
+
         {currentMode === 'curator' && (
           <List>
             <ListItemButton onClick={onOpenCameraMenu}>
@@ -166,16 +182,16 @@ const Sidebar: React.FC<SidebarProps> = ({
               </ListItemIcon>
               <ListItemText primary="Camera" />
             </ListItemButton>
-            
+
             <ListItemButton onClick={onOpenMetadataDialog}>
               <ListItemIcon>
                 <InfoIcon />
               </ListItemIcon>
-              <ListItemText primary="Metadata" />
+              <ListItemText primary="Shows" />
             </ListItemButton>
           </List>
         )}
-        
+
         {currentMode === 'debug' && (
           <List>
             <ListItemButton>
@@ -184,21 +200,23 @@ const Sidebar: React.FC<SidebarProps> = ({
               </ListItemIcon>
               <ListItemText primary="ClearCore Commands" />
             </ListItemButton>
-            
+
             <ListItemButton onClick={onOpenCameraMenu}>
               <ListItemIcon>
                 <VideocamIcon />
               </ListItemIcon>
               <ListItemText primary="Camera" />
             </ListItemButton>
-            
-            <ListItemButton 
+
+            <ListItemButton
               onClick={() => {
                 if (clearCoreIp) {
                   window.open(`http://${clearCoreIp}:8000`, '_blank');
                 } else {
                   // Alert if no IP is available
-                  alert('ClearCore IP address not available. Please check connection.');
+                  alert(
+                    'ClearCore IP address not available. Please check connection.'
+                  );
                 }
               }}
             >
@@ -206,29 +224,29 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <SettingsIcon />
               </ListItemIcon>
               <ListItemText primary="ClearCore Server" />
-            </ListItemButton>          
+            </ListItemButton>
           </List>
-          )}
-        
+        )}
+
         <Box sx={{ position: 'absolute', bottom: 0, width: '100%', p: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
             System Status
           </Typography>
-          
+
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Chip 
+            <Chip
               label={`ClearCore: ${systemStatus.connected ? 'Connected' : 'Disconnected'}`}
               color={getStatusColor(systemStatus.connected)}
               size="small"
             />
-            
-            <Chip 
+
+            <Chip
               label={`Rangefinder: ${systemStatus.rangefinderActive ? 'Active' : 'Inactive'}`}
               color={getStatusColor(systemStatus.rangefinderActive)}
               size="small"
             />
-            
-            <Chip 
+
+            <Chip
               label={`E-Stop: ${systemStatus.eStop ? 'Activated' : 'Inactive'}`}
               color={systemStatus.eStop ? 'error' : 'success'}
               size="small"
@@ -236,8 +254,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           </Box>
         </Box>
       </Drawer>
-      
-      <ClearCoreServerModal 
+
+      <ClearCoreServerModal
         open={clearCoreServerModalOpen}
         onClose={() => setClearCoreServerModalOpen(false)}
         clearCoreIp={clearCoreIp}
