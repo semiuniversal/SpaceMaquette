@@ -1,21 +1,19 @@
-// space-maquette-server/src/motion-solver.js
-
+// motion-solver.js
 const { systemState, updatePosition } = require('./state');
 const fs = require('fs');
 const path = require('path');
+const logDebug = require('./logger');
 
-// Load movement configuration
 let config;
 try {
   const configFile = fs.readFileSync(
     path.join(__dirname, 'config', 'movementConfig.jsonc')
   );
-  // Remove comments before parsing JSON
   const configStr = configFile.toString().replace(/\/\/.*$/gm, '');
   config = JSON.parse(configStr);
+  logDebug('motion-solver: Loaded movement config successfully.');
 } catch (error) {
-  console.error('Error loading movement config:', error);
-  // Default configuration as fallback
+  logDebug('motion-solver: Error loading movement config:', error);
   config = {
     keyboard: {
       moveSpeed: 100,
@@ -37,22 +35,10 @@ try {
   };
 }
 
-// Debug function
-function logDebug(...args) {
-  console.log(`[MOTION-SOLVER ${new Date().toISOString()}]`, ...args);
+function logCurrentState() {
+  logDebug('motion-solver: Current system state:', systemState);
 }
 
-/**
- * Calculate new position based on movement inputs
- * @param {number} x - Current X position
- * @param {number} y - Current Y position
- * @param {number} yaw - Current yaw angle (radians)
- * @param {number} pitch - Current pitch angle (radians)
- * @param {number} vForward - Forward velocity (-1 to 1)
- * @param {number} vStrafe - Strafe velocity (-1 to 1)
- * @param {number} deltaTime - Time since last update (seconds)
- * @returns {Object} New position {x, y}
- */
 function calculatePositionUpdate(
   x,
   y,
@@ -62,44 +48,33 @@ function calculatePositionUpdate(
   vStrafe,
   deltaTime
 ) {
-  // Calculate directional basis vectors
+  logDebug('motion-solver: Calculating position update with inputs:', {
+    x,
+    y,
+    yaw,
+    pitch,
+    vForward,
+    vStrafe,
+    deltaTime,
+  });
   const forward = [
     Math.cos(yaw) * Math.cos(pitch),
     Math.sin(yaw) * Math.cos(pitch),
   ];
-
   const right = [-Math.sin(yaw), Math.cos(yaw)];
-
-  // Scale by move speed
   const speed = config.keyboard.moveSpeed;
-
-  // Compute displacement
   const dx = (vForward * forward[0] + vStrafe * right[0]) * speed * deltaTime;
   const dy = (vForward * forward[1] + vStrafe * right[1]) * speed * deltaTime;
-
-  // Return new position
+  logDebug('motion-solver: Computed displacement dx, dy:', dx, dy);
   return { x: x + dx, y: y + dy };
 }
 
-/**
- * Process keyboard movement command
- * @param {Object} data - Movement data
- * @param {number} data.forward - Forward velocity (-1 to 1)
- * @param {number} data.strafe - Strafe velocity (-1 to 1)
- * @param {number} data.deltaTime - Time since last update (seconds)
- * @returns {Object} Updated position
- */
 function processKeyboardMovement(data) {
+  logDebug('motion-solver: Processing keyboard movement:', data);
   const { forward, strafe, deltaTime } = data;
-
-  // Get current position and orientation
   const { x, y, pan, tilt } = systemState.position;
-
-  // Convert angles from degrees to radians
   const yaw = (pan * Math.PI) / 180;
   const pitch = (tilt * Math.PI) / 180;
-
-  // Calculate new position
   const newPos = calculatePositionUpdate(
     x,
     y,
@@ -110,64 +85,39 @@ function processKeyboardMovement(data) {
     deltaTime
   );
 
-  // Apply collision detection if enabled
   if (config.collision.enabled) {
-    // Check boundaries and apply limits
-    // This is a placeholder for actual collision logic
     newPos.x = Math.max(0, Math.min(newPos.x, 800));
     newPos.y = Math.max(0, Math.min(newPos.y, 800));
   }
 
-  // Update system state
-  updatePosition({
-    x: newPos.x,
-    y: newPos.y,
-  });
-
+  logDebug('motion-solver: New position calculated:', newPos);
+  updatePosition({ x: newPos.x, y: newPos.y });
+  logCurrentState();
   return systemState.position;
 }
 
-/**
- * Process mouse look command
- * @param {Object} data - Look data
- * @param {number} data.deltaX - Mouse X movement
- * @param {number} data.deltaY - Mouse Y movement
- * @returns {Object} Updated orientation
- */
 function processMouseLook(data) {
+  logDebug('motion-solver: Processing mouse look:', data);
   const { deltaX, deltaY } = data;
-
-  // Get current orientation
   const { pan, tilt } = systemState.position;
-
-  // Calculate new pan (yaw)
   let newPan = pan + deltaX * config.keyboard.rotationSpeed;
-
-  // Normalize pan to 0-360 degrees
   newPan = ((newPan % 360) + 360) % 360;
-
-  // Calculate new tilt (pitch) with constraints
   let newTilt = tilt - deltaY * config.keyboard.rotationSpeed;
   newTilt = Math.max(
     config.keyboard.tiltConstraints.min,
     Math.min(config.keyboard.tiltConstraints.max, newTilt)
   );
-
-  // Update system state
-  updatePosition({
-    pan: newPan,
-    tilt: newTilt,
-  });
-
+  logDebug('motion-solver: Computed new pan and tilt:', newPan, newTilt);
+  updatePosition({ pan: newPan, tilt: newTilt });
+  logCurrentState();
   return { pan: newPan, tilt: newTilt };
 }
 
-/**
- * Process button movement command
- * @param {string} direction - Movement direction
- * @returns {Object} Updated position
- */
 function processButtonMovement(direction) {
+  logDebug(
+    'motion-solver: Processing button movement in direction:',
+    direction
+  );
   const { x, y, z, pan, tilt } = systemState.position;
   const newPosition = { ...systemState.position };
 
@@ -209,19 +159,15 @@ function processButtonMovement(direction) {
       );
       break;
     default:
-      // No change for unknown directions
+      logDebug('motion-solver: Unknown button movement direction:', direction);
       break;
   }
-
-  // Apply collision detection if enabled
-  if (config.collision.enabled) {
-    // Simple boundary checks
-    newPosition.x = Math.max(0, Math.min(newPosition.x, 800));
-    newPosition.y = Math.max(0, Math.min(newPosition.y, 800));
-    newPosition.z = Math.max(0, Math.min(newPosition.z, 500));
-  }
-
+  logDebug(
+    'motion-solver: New target position for button movement:',
+    newPosition
+  );
   updatePosition(newPosition);
+  logCurrentState();
   return systemState.position;
 }
 

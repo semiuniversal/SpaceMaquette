@@ -1,31 +1,24 @@
-// src/motion_sim.js
-
+// motion_sim.js
 const { systemState, updatePosition, updateSystemStatus } = require('./state');
+const logDebug = require('./logger');
 
-// Store reference to io
 let ioRef = null;
 
-// Configuration for motion characteristics
 const motionConfig = {
-  // Acceleration/deceleration in units per second²
   acceleration: {
     x: 200,
     y: 200,
     z: 100,
     pan: 90, // degrees per second²
   },
-  // Maximum velocities in units per second
   maxSpeed: {
     x: 300,
     y: 300,
     z: 150,
     pan: 90, // degrees per second
   },
-  // Minimum move time in ms (for very small moves)
-  minMoveTime: 200,
-  // Update frequency in ms
-  updateInterval: 50,
-  // Step sizes for button movements
+  minMoveTime: 200, // in ms
+  updateInterval: 50, // in ms
   steps: {
     x: 50,
     y: 50,
@@ -35,7 +28,6 @@ const motionConfig = {
   },
 };
 
-// Active motion simulations
 const activeMotions = {
   x: null,
   y: null,
@@ -44,40 +36,47 @@ const activeMotions = {
   tilt: null,
 };
 
-// Allow other modules to set the io reference
 function setIo(io) {
   ioRef = io;
+  logDebug('motion_sim: IO reference set.');
 }
 
-// Safely emit status updates
 function emitStatus() {
   if (ioRef) {
+    logDebug('motion_sim: Emitting system status', systemState);
     ioRef.emit('systemStatus', {
       ...systemState,
-      _updateId: Date.now(), // Add unique ID to track updates
+      _updateId: Date.now(),
     });
+  } else {
+    logDebug('motion_sim: No IO reference set. Cannot emit status.');
   }
 }
 
-/**
- * Calculate motion profile with acceleration and deceleration
- */
 function calculateMotionProfile(distance, maxSpeed, acceleration) {
+  logDebug(
+    'motion_sim: Calculating motion profile for distance:',
+    distance,
+    'maxSpeed:',
+    maxSpeed,
+    'acceleration:',
+    acceleration
+  );
   const absDistance = Math.abs(distance);
   const direction = Math.sign(distance);
-
-  // Time to reach max speed
   const timeToMaxSpeed = maxSpeed / acceleration;
-
-  // Distance covered during acceleration to max speed
   const accelDistance = 0.5 * acceleration * timeToMaxSpeed * timeToMaxSpeed;
 
-  // Check if we can reach max speed
   if (accelDistance * 2 <= absDistance) {
-    // Trapezoidal profile (reach max speed)
     const timeAtMaxSpeed = (absDistance - 2 * accelDistance) / maxSpeed;
     const totalTime = 2 * timeToMaxSpeed + timeAtMaxSpeed;
-
+    logDebug('motion_sim: Trapezoidal profile computed:', {
+      timeToMaxSpeed,
+      timeAtMaxSpeed,
+      totalTime,
+      accelDistance,
+      direction,
+    });
     return {
       canReachMaxSpeed: true,
       timeToMaxSpeed,
@@ -87,10 +86,14 @@ function calculateMotionProfile(distance, maxSpeed, acceleration) {
       direction,
     };
   } else {
-    // Triangular profile (never reach max speed)
     const peakTime = Math.sqrt(absDistance / acceleration);
     const peakSpeed = acceleration * peakTime;
-
+    logDebug('motion_sim: Triangular profile computed:', {
+      peakTime,
+      totalTime: 2 * peakTime,
+      peakSpeed,
+      direction,
+    });
     return {
       canReachMaxSpeed: false,
       peakTime,
@@ -101,11 +104,10 @@ function calculateMotionProfile(distance, maxSpeed, acceleration) {
   }
 }
 
-/**
- * Calculate position at a given time in the motion profile
- */
 function calculatePositionAtTime(startPos, time, profile, axis, distance) {
+  logDebug(`motion_sim: Calculating ${axis} position at time ${time}s`);
   const { direction } = profile;
+  let pos;
 
   if (profile.canReachMaxSpeed) {
     const { timeToMaxSpeed, timeAtMaxSpeed, totalTime, accelDistance } =
@@ -113,19 +115,18 @@ function calculatePositionAtTime(startPos, time, profile, axis, distance) {
     const maxSpeed = motionConfig.maxSpeed[axis];
 
     if (time <= timeToMaxSpeed) {
-      // Acceleration phase
-      return (
+      pos =
         startPos +
-        direction * 0.5 * motionConfig.acceleration[axis] * time * time
-      );
+        direction * 0.5 * motionConfig.acceleration[axis] * time * time;
+      logDebug(`motion_sim: ${axis} acceleration phase, pos: ${pos}`);
+      return pos;
     } else if (time <= timeToMaxSpeed + timeAtMaxSpeed) {
-      // Constant speed phase
       const timeInConstantPhase = time - timeToMaxSpeed;
-      return (
-        startPos + direction * (accelDistance + maxSpeed * timeInConstantPhase)
-      );
+      pos =
+        startPos + direction * (accelDistance + maxSpeed * timeInConstantPhase);
+      logDebug(`motion_sim: ${axis} constant speed phase, pos: ${pos}`);
+      return pos;
     } else if (time <= totalTime) {
-      // Deceleration phase
       const timeInDecelPhase = time - timeToMaxSpeed - timeAtMaxSpeed;
       const distanceInDecelPhase =
         maxSpeed * timeInDecelPhase -
@@ -133,26 +134,28 @@ function calculatePositionAtTime(startPos, time, profile, axis, distance) {
           motionConfig.acceleration[axis] *
           timeInDecelPhase *
           timeInDecelPhase;
-      return (
+      pos =
         startPos +
         direction *
-          (accelDistance + maxSpeed * timeAtMaxSpeed + distanceInDecelPhase)
-      );
+          (accelDistance + maxSpeed * timeAtMaxSpeed + distanceInDecelPhase);
+      logDebug(`motion_sim: ${axis} deceleration phase, pos: ${pos}`);
+      return pos;
     } else {
-      // Past end of motion
-      return startPos + distance;
+      pos = startPos + distance;
+      logDebug(`motion_sim: ${axis} motion complete, pos: ${pos}`);
+      return pos;
     }
   } else {
     const { peakTime, totalTime, peakSpeed } = profile;
-
     if (time <= peakTime) {
-      // Acceleration phase
-      return (
+      pos =
         startPos +
-        direction * 0.5 * motionConfig.acceleration[axis] * time * time
+        direction * 0.5 * motionConfig.acceleration[axis] * time * time;
+      logDebug(
+        `motion_sim: ${axis} triangular acceleration phase, pos: ${pos}`
       );
+      return pos;
     } else if (time <= totalTime) {
-      // Deceleration phase
       const timeInDecelPhase = time - peakTime;
       const distanceInAccelPhase = 0.5 * peakSpeed * peakTime;
       const distanceInDecelPhase =
@@ -161,45 +164,50 @@ function calculatePositionAtTime(startPos, time, profile, axis, distance) {
           motionConfig.acceleration[axis] *
           timeInDecelPhase *
           timeInDecelPhase;
-      return (
-        startPos + direction * (distanceInAccelPhase + distanceInDecelPhase)
+      pos =
+        startPos + direction * (distanceInAccelPhase + distanceInDecelPhase);
+      logDebug(
+        `motion_sim: ${axis} triangular deceleration phase, pos: ${pos}`
       );
+      return pos;
     } else {
-      // Past end of motion
-      return startPos + distance;
+      pos = startPos + distance;
+      logDebug(`motion_sim: ${axis} triangular motion complete, pos: ${pos}`);
+      return pos;
     }
   }
 }
 
-/**
- * Start a motion simulation for a specific axis
- */
 function startAxisMotion(axis, targetPosition, onComplete = null) {
+  logDebug(
+    `motion_sim: Starting motion for axis "${axis}" to target ${targetPosition}`
+  );
   stopAxisMotion(axis);
 
   const currentPosition = systemState.position[axis];
   let distance = targetPosition - currentPosition;
 
-  // Handle pan's circular nature
+  // Adjust for circular nature on pan
   if (axis === 'pan') {
-    // Find shortest path around the circle
     if (distance > 180) distance -= 360;
     if (distance < -180) distance += 360;
+    logDebug(`motion_sim: Adjusted pan distance: ${distance}`);
   }
 
-  // Skip if no movement needed
   if (Math.abs(distance) < 0.01) {
+    logDebug(
+      `motion_sim: No significant movement for axis "${axis}" (distance: ${distance})`
+    );
     if (onComplete) onComplete();
     return;
   }
 
-  // Special case for tilt which is instantaneous
+  // Instant update for tilt
   if (axis === 'tilt') {
     updatePosition({ [axis]: targetPosition });
     updateSystemStatus({ servoStatus: 'ACTIVE' });
     emitStatus();
-
-    // Reset status after brief delay
+    logDebug(`motion_sim: Instant tilt set to ${targetPosition}`);
     setTimeout(() => {
       updateSystemStatus({ servoStatus: 'IDLE' });
       emitStatus();
@@ -208,46 +216,44 @@ function startAxisMotion(axis, targetPosition, onComplete = null) {
     return;
   }
 
-  // Calculate motion profile
   const profile = calculateMotionProfile(
     distance,
     motionConfig.maxSpeed[axis],
     motionConfig.acceleration[axis]
   );
-
-  // Ensure minimum move time
   const totalTime = Math.max(
     profile.totalTime * 1000,
     motionConfig.minMoveTime
   );
+  logDebug(
+    `motion_sim: Motion profile for axis "${axis}" determined:`,
+    profile,
+    `Total time: ${totalTime}ms`
+  );
 
-  // Start tracking motion
   const startTime = Date.now();
   const startPos = currentPosition;
 
-  // Update status
   updateSystemStatus({
     clearCoreStatus: 'MOVING',
     servoStatus: axis === 'pan' ? 'ACTIVE' : systemState.servoStatus,
   });
   emitStatus();
 
-  console.log(
-    `[MOTION_SIM] Starting motion for ${axis} from ${startPos} to ${targetPosition}, distance: ${distance}, duration: ${totalTime}ms`
+  logDebug(
+    `[MOTION_SIM] Initiating motion for ${axis}: start=${startPos}, target=${targetPosition}, duration=${totalTime}ms`
   );
 
-  // Create interval for updates
   activeMotions[axis] = setInterval(() => {
     const elapsed = (Date.now() - startTime) / 1000; // seconds
     const progress = elapsed / (totalTime / 1000);
 
     if (progress >= 1) {
-      // Motion complete
       updatePosition({ [axis]: targetPosition });
       emitStatus();
       stopAxisMotion(axis, onComplete);
+      logDebug(`motion_sim: Motion complete for axis "${axis}"`);
     } else {
-      // Update to intermediate position
       const currentPos = calculatePositionAtTime(
         startPos,
         elapsed,
@@ -255,73 +261,64 @@ function startAxisMotion(axis, targetPosition, onComplete = null) {
         axis,
         distance
       );
-
-      // Special handling for pan to keep within 0-360 range
       if (axis === 'pan') {
         updatePosition({ [axis]: ((currentPos % 360) + 360) % 360 });
       } else {
         updatePosition({ [axis]: currentPos });
       }
-
       emitStatus();
+      logDebug(`motion_sim: Updated ${axis} position: ${currentPos}`);
     }
   }, motionConfig.updateInterval);
 }
 
-/**
- * Stop motion simulation for a specific axis
- */
 function stopAxisMotion(axis, onComplete = null) {
   if (activeMotions[axis]) {
     clearInterval(activeMotions[axis]);
     activeMotions[axis] = null;
-
-    // Only update status if no axes are moving
+    logDebug(`motion_sim: Stopped motion for axis "${axis}"`);
     if (!Object.values(activeMotions).some((motion) => motion !== null)) {
       updateSystemStatus({
         clearCoreStatus: 'READY',
         servoStatus: 'IDLE',
       });
       emitStatus();
+      logDebug('motion_sim: All motions stopped. System set to READY.');
     }
-
     if (onComplete) onComplete();
+  } else {
+    logDebug(`motion_sim: No active motion for axis "${axis}" to stop.`);
   }
 }
 
-/**
- * Move to an absolute position with simulated motion
- */
 function moveToPosition(targetPosition) {
-  // Don't allow movement if in E-STOP
   if (systemState.eStop) {
+    logDebug('motion_sim: E-STOP active. Movement aborted.');
     return { status: 'ERROR', message: 'ESTOP_ACTIVE' };
   }
 
-  console.log('[MOTION_SIM] Moving to position:', targetPosition);
-
-  // Start motion for each axis that has a target
+  logDebug('motion_sim: moveToPosition called with target:', targetPosition);
   Object.entries(targetPosition).forEach(([axis, target]) => {
     if (systemState.position[axis] !== undefined) {
       startAxisMotion(axis, target);
+      logDebug(
+        `motion_sim: Initiated motion for axis "${axis}" to target ${target}`
+      );
     }
   });
 
   return { status: 'OK', message: 'MOVE_STARTED' };
 }
 
-/**
- * Execute a button movement in a specific direction
- */
 function executeButtonMovement(direction) {
-  // Don't allow movement if in E-STOP
   if (systemState.eStop) {
+    logDebug('motion_sim: E-STOP active. Button movement aborted.');
     return { status: 'ERROR', message: 'ESTOP_ACTIVE' };
   }
 
+  logDebug(`motion_sim: Executing button movement in direction "${direction}"`);
   const { x, y, z, pan, tilt } = systemState.position;
   const { steps } = motionConfig;
-
   const newPosition = { ...systemState.position };
 
   switch (direction) {
@@ -344,11 +341,9 @@ function executeButtonMovement(direction) {
       newPosition.z = Math.max(z - steps.z, 0);
       break;
     case 'pan+':
-      // Calculate new pan value and normalize to 0-360
       newPosition.pan = (pan + steps.pan) % 360;
       break;
     case 'pan-':
-      // Calculate new pan value and normalize to 0-360
       newPosition.pan = (((pan - steps.pan) % 360) + 360) % 360;
       break;
     case 'tilt+':
@@ -358,19 +353,19 @@ function executeButtonMovement(direction) {
       newPosition.tilt = Math.max(tilt - steps.tilt, 45);
       break;
     default:
+      logDebug('motion_sim: Invalid button movement direction:', direction);
       return { status: 'ERROR', message: 'INVALID_DIRECTION' };
   }
 
-  console.log(
-    `[MOTION_SIM] Button movement ${direction}, target:`,
+  logDebug(
+    'motion_sim: New target position after button movement:',
     newPosition
   );
   return moveToPosition(newPosition);
 }
-/**
- * Stop all active motions
- */
+
 function stopAllMotions() {
+  logDebug('motion_sim: Stopping all motions.');
   Object.keys(activeMotions).forEach((axis) => {
     stopAxisMotion(axis);
   });
@@ -381,15 +376,13 @@ function stopAllMotions() {
   return { status: 'OK', message: 'ALL_MOTIONS_STOPPED' };
 }
 
-/**
- * Home a specific axis or all axes
- */
 function homeAxis(axis, onComplete = null) {
-  // Don't allow movement if in E-STOP
   if (systemState.eStop) {
+    logDebug('motion_sim: E-STOP active. Homing aborted.');
     return { status: 'ERROR', message: 'ESTOP_ACTIVE' };
   }
 
+  logDebug(`motion_sim: Starting homing for axis "${axis}"`);
   const homePositions = {
     X: { x: 0 },
     Y: { y: 0 },
@@ -400,34 +393,31 @@ function homeAxis(axis, onComplete = null) {
   emitStatus();
 
   if (axis === 'ALL') {
-    // Home Z first (for safety)
+    logDebug('motion_sim: Homing ALL axes. Homing Z first.');
     moveToPosition({ z: 0 });
-
     setTimeout(() => {
-      // After Z is homed, home X and Y
+      logDebug('motion_sim: Homing X and Y axes.');
       moveToPosition({ x: 0, y: 0 });
-
-      // Set homed flags
       systemState.homed = { x: true, y: true, z: true };
-
       setTimeout(() => {
         updateSystemStatus({ clearCoreStatus: 'READY' });
         emitStatus();
+        logDebug('motion_sim: All axes homed successfully.');
         if (onComplete) onComplete('All axes homed successfully');
-      }, 2000); // Allow time for XY homing
-    }, 2000); // Allow time for Z homing
+      }, 2000);
+    }, 2000);
   } else if (homePositions[axis]) {
+    logDebug(`motion_sim: Homing axis "${axis}"`);
     moveToPosition(homePositions[axis]);
-
-    // Set homed flag for this axis
     systemState.homed[axis.toLowerCase()] = true;
-
     setTimeout(() => {
       updateSystemStatus({ clearCoreStatus: 'READY' });
       emitStatus();
+      logDebug(`motion_sim: Axis "${axis}" homed successfully.`);
       if (onComplete) onComplete(`${axis} axis homed successfully`);
-    }, 2000); // Allow time for homing
+    }, 2000);
   } else {
+    logDebug('motion_sim: Invalid axis provided for homing:', axis);
     return { status: 'ERROR', message: 'INVALID_AXIS' };
   }
 
