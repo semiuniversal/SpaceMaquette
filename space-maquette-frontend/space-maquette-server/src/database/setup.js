@@ -24,10 +24,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
 // Set up database tables based on DBML schema
 function setupDatabase() {
   console.log('Setting up database tables...');
-  
+
   // Clean up existing database
   dropExistingTables();
-  
+
   db.serialize(() => {
     // Create tables
     createShowsTable();
@@ -35,7 +35,7 @@ function setupDatabase() {
     createLightTables();
     createScansTable();
     createSettingsTable();
-    
+
     // Insert default data
     insertDefaultData();
   });
@@ -43,12 +43,21 @@ function setupDatabase() {
 
 function dropExistingTables() {
   const tables = [
-    'show_metadata', 'backdrop_settings', 'nogo_regions', 
-    'scan_regions', 'height_map', 'configuration',
-    'shows', 'map', 'lights', 'light', 'scans', 'settings'
+    'show_metadata',
+    'backdrop_settings',
+    'nogo_regions',
+    'scan_regions',
+    'height_map',
+    'configuration',
+    'shows',
+    'map',
+    'lights',
+    'light',
+    'scans',
+    'settings',
   ];
-  
-  tables.forEach(table => {
+
+  tables.forEach((table) => {
     db.run(`DROP TABLE IF EXISTS ${table}`);
   });
 }
@@ -106,7 +115,7 @@ function createLightTables() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  
+
   // Lights configuration table
   db.run(`
     CREATE TABLE lights (
@@ -147,6 +156,7 @@ function createSettingsTable() {
       system_name VARCHAR NOT NULL,
       firmware_version VARCHAR NOT NULL,
       serial_number VARCHAR NOT NULL,
+      current_show INT NULL,
       velocity_x INTEGER NOT NULL,
       velocity_y INTEGER NOT NULL,
       velocity_z INTEGER NOT NULL,
@@ -193,46 +203,44 @@ function createSettingsTable() {
       log_commands BOOLEAN NOT NULL,
       log_file VARCHAR NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (current_show) REFERENCES shows(id)
     )
   `);
 }
 
 function insertDefaultData() {
   // Insert default show
-  db.run(`
+  db.run(
+    `
     INSERT INTO shows (work_name, artist, created, materials, scale, use_backdrop)
     VALUES (?, ?, ?, ?, ?, ?)
-  `, [
-    'Cosmic Drift',
-    'Jane Doe',
-    '2025',
-    'Mixed media, electronics',
-    '1:10',
-    0
-  ]);
-  
+  `,
+    ['Cosmic Drift', 'Jane Doe', '2025', 'Mixed media, electronics', '1:10', 0]
+  );
+
   // Insert default light templates
   const defaultLights = [
     { name: 'Main', description: 'Main scene light' },
     { name: 'Accent 1', description: 'Left accent light' },
     { name: 'Accent 2', description: 'Right accent light' },
-    { name: 'Background', description: 'Background fill light' }
+    { name: 'Background', description: 'Background fill light' },
   ];
-  
+
   const lightStmt = db.prepare(`
     INSERT INTO light (name, description)
     VALUES (?, ?)
   `);
-  
-  defaultLights.forEach(light => {
+
+  defaultLights.forEach((light) => {
     lightStmt.run(light.name, light.description);
   });
-  
+
   lightStmt.finalize();
-  
+
   // Insert default settings
-  db.run(`
+  db.run(
+    `
     INSERT INTO settings (
       system_name, firmware_version, serial_number,
       velocity_x, velocity_y, velocity_z,
@@ -251,40 +259,61 @@ function insertDefaultData() {
       ethernet_logging, ethernet_log_file, ethernet_log_level,
       debug, debug_level, log_commands, log_file
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    'Space Maquette',   // system_name
-    '1.0.0',            // firmware_version
-    'SM-2025-001',      // serial_number
-    300, 300, 150,      // velocity_x, y, z
-    1000, 1000, 1000,   // acceleration_x, y, z
-    5000, 5000, 5000,   // max_jerk_x, y, z
-    10.5, 10.5,         // rangefinder_offset_x, y
-    10, 1000,           // min_distance, max_distance
-    30,                 // collision_margin
-    45, 135, 90, 50,    // tilt_min, tilt_max, tilt_center, tilt_speed
-    100, 100, 50,       // home_velocity_x, home_velocity_y, home_velocity_z
-    1, 1, -1,           // home_direction_x, home_direction_y, home_direction_z
-    0, 0, 0,            // stage_min_x, stage_min_y, stage_min_z
-    2000, 2000, 1000,   // stage_max_x, stage_max_y, stage_max_z
-    3001,               // ethernet_port
-    1,                  // ethernet_dhcp
-    '192.168.1.100',    // ethernet_static_ip
-    '255.255.255.0',    // ethernet_static_netmask
-    '192.168.1.1',      // ethernet_static_gateway
-    30000,              // ethernet_timeout
-    5000,               // ethernet_heartbeat
-    1,                  // ethernet_reconnect
-    1,                  // ethernet_logging
-    'ETHERNET.LOG',     // ethernet_log_file
-    2,                  // ethernet_log_level
-    0,                  // debug
-    1,                  // debug_level
-    1,                  // log_commands
-    'COMMAND.LOG'       // log_file
-  ]);  
+  `,
+    [
+      'Space Maquette', // system_name
+      '1.0.0', // firmware_version
+      'SM-2025-001', // serial_number
+      300,
+      300,
+      150, // velocity_x, y, z
+      1000,
+      1000,
+      1000, // acceleration_x, y, z
+      5000,
+      5000,
+      5000, // max_jerk_x, y, z
+      10.5,
+      10.5, // rangefinder_offset_x, y
+      10,
+      1000, // min_distance, max_distance
+      30, // collision_margin
+      45,
+      135,
+      90,
+      50, // tilt_min, tilt_max, tilt_center, tilt_speed
+      100,
+      100,
+      50, // home_velocity_x, home_velocity_y, home_velocity_z
+      1,
+      1,
+      -1, // home_direction_x, home_direction_y, home_direction_z
+      0,
+      0,
+      0, // stage_min_x, stage_min_y, stage_min_z
+      2000,
+      2000,
+      1000, // stage_max_x, stage_max_y, stage_max_z
+      3001, // ethernet_port
+      1, // ethernet_dhcp
+      '192.168.1.100', // ethernet_static_ip
+      '255.255.255.0', // ethernet_static_netmask
+      '192.168.1.1', // ethernet_static_gateway
+      30000, // ethernet_timeout
+      5000, // ethernet_heartbeat
+      1, // ethernet_reconnect
+      1, // ethernet_logging
+      'ETHERNET.LOG', // ethernet_log_file
+      2, // ethernet_log_level
+      0, // debug
+      1, // debug_level
+      1, // log_commands
+      'COMMAND.LOG', // log_file
+    ]
+  );
 }
 
 module.exports = {
   db,
-  setupDatabase
+  setupDatabase,
 };

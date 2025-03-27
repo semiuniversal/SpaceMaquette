@@ -24,7 +24,44 @@ router.get('/shows', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+router.get('/metadata', async (req, res) => {
+  try {
+    const dataService = require('../database/data-service');
 
+    // Get current show ID from settings
+    const settings = await dataService.getSettings();
+    const currentShowId = settings?.current_show || null;
+
+    if (!currentShowId) {
+      return res.json({
+        error: 'No show currently loaded',
+        status: 'idle',
+      });
+    }
+
+    // Get show data
+    const show = await dataService.getShow(currentShowId);
+
+    if (!show) {
+      return res.status(404).json({ error: 'Show not found' });
+    }
+
+    // Return show metadata
+    res.json({
+      id: show.id,
+      name: show.name,
+      artist: show.artist,
+      year: show.year,
+      materials: show.materials,
+      dimensions: show.dimensions,
+      backdrop: show.backdrop_type,
+      status: 'active',
+    });
+  } catch (error) {
+    console.error('Error in metadata route:', error);
+    res.status(500).json({ error: 'Failed to retrieve metadata' });
+  }
+});
 router.get('/shows/:id', async (req, res) => {
   try {
     const show = await dataService.getShow(req.params.id);
@@ -39,11 +76,11 @@ router.get('/shows/:id', async (req, res) => {
 router.post('/shows', async (req, res) => {
   try {
     const { work_name, artist, created, materials } = req.body;
-    
+
     if (!work_name || !artist || !created || !materials) {
       return res.status(400).json({ error: 'Required fields missing' });
     }
-    
+
     console.log('Creating new show:', req.body);
     const show = await dataService.createShow(req.body);
     res.status(201).json(show);
@@ -132,7 +169,12 @@ router.patch('/scans/:id/status', async (req, res) => {
   try {
     const { complete, last_x, last_y } = req.body;
     console.log(`Updating scan ${req.params.id} status:`, req.body);
-    const scan = await dataService.updateScanStatus(req.params.id, complete, last_x, last_y);
+    const scan = await dataService.updateScanStatus(
+      req.params.id,
+      complete,
+      last_x,
+      last_y
+    );
     res.json(scan);
   } catch (err) {
     console.error(`Error updating scan ${req.params.id} status:`, err);
@@ -179,7 +221,7 @@ router.get('/status', (req, res) => {
     clearCoreStatus: systemState.clearCoreStatus,
     rangefinderActive: systemState.rangefinderActive,
     eStop: systemState.eStop,
-    servoStatus: systemState.servoStatus
+    servoStatus: systemState.servoStatus,
   });
 });
 
@@ -190,8 +232,8 @@ router.get('/position', (req, res) => {
       clearCoreStatus: systemState.clearCoreStatus,
       rangefinderActive: systemState.rangefinderActive,
       eStop: systemState.eStop,
-      servoStatus: systemState.servoStatus
-    }
+      servoStatus: systemState.servoStatus,
+    },
   });
 });
 

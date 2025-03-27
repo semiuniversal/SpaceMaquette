@@ -24,8 +24,8 @@ const AppContent: React.FC = () => {
   const [showsDialogOpen, setShowsDialogOpen] = useState(false);
 
   // Artwork data
-  const [title, setTitle] = useState('Cosmic Drift');
-  const [artist, setArtist] = useState('Jane Doe');
+  const [title, setTitle] = useState('[show name]');
+  const [artist, setArtist] = useState('[artist name]');
 
   // WebSocket context
   const { position, systemStatus, sendCommand, connected } = useWebSocket();

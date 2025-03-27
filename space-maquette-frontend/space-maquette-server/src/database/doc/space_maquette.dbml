@@ -68,6 +68,7 @@ Table settings {
   system_name varchar [not null]
   firmware_version varchar [not null]
   serial_number varchar [not null]
+  current_show int [null, ref: > shows.id]
   velocity_x integer [not null]
   velocity_y integer [not null]
   velocity_z integer [not null]
