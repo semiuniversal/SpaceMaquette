@@ -1,7 +1,12 @@
 // src/components/layout/Header.tsx
 import React from 'react';
 import { AppBar, Toolbar, Typography, IconButton, Box } from '@mui/material';
-import { Menu as MenuIcon, Warning as WarningIcon, Wifi as WifiIcon, WifiOff as WifiOffIcon } from '@mui/icons-material';
+import {
+  Menu as MenuIcon,
+  Warning as WarningIcon,
+  Wifi as WifiIcon,
+  WifiOff as WifiOffIcon,
+} from '@mui/icons-material';
 
 interface HeaderProps {
   title: string;
@@ -18,7 +23,7 @@ const Header: React.FC<HeaderProps> = ({
   onMenuToggle,
   emergencyStop,
   onEmergencyStop,
-  connected = true
+  connected = true,
 }) => {
   return (
     <AppBar position="static">
@@ -32,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({
         >
           <MenuIcon />
         </IconButton>
-        
+
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="h6" component="div">
             {title}
@@ -43,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({
             </Typography>
           )}
         </Box>
-        
+
         {/* Connection status indicator */}
         <IconButton color="inherit" sx={{ mr: 1 }}>
           {connected ? (
@@ -52,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({
             <WifiOffIcon sx={{ color: '#f44336' }} />
           )}
         </IconButton>
-        
+
         {/* E-Stop indicator */}
         <IconButton
           color="inherit"
@@ -60,8 +65,10 @@ const Header: React.FC<HeaderProps> = ({
           sx={{
             bgcolor: emergencyStop ? 'error.main' : 'transparent',
             '&:hover': {
-              bgcolor: emergencyStop ? 'error.dark' : 'rgba(255, 255, 255, 0.08)'
-            }
+              bgcolor: emergencyStop
+                ? 'error.dark'
+                : 'rgba(255, 255, 255, 0.08)',
+            },
           }}
         >
           <WarningIcon sx={{ color: 'inherit' }} />

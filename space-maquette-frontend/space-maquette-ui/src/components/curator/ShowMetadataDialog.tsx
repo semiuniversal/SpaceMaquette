@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  TextField, 
-  Button, 
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
   Grid,
-  Typography
+  Typography,
 } from '@mui/material';
 import { ShowMetadata } from '../../types';
 
@@ -22,15 +22,15 @@ const ShowMetadataDialog: React.FC<ShowMetadataDialogProps> = ({
   open,
   onClose,
   metadata,
-  onSave
+  onSave,
 }) => {
   const [formData, setFormData] = useState<ShowMetadata>(metadata);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -40,16 +40,11 @@ const ShowMetadataDialog: React.FC<ShowMetadataDialogProps> = ({
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      fullWidth
-      maxWidth="md"
-    >
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>
         <Typography variant="h5">Artwork Details</Typography>
       </DialogTitle>
-      
+
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12} md={6}>
@@ -63,7 +58,7 @@ const ShowMetadataDialog: React.FC<ShowMetadataDialogProps> = ({
               variant="outlined"
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <TextField
               name="artist"
@@ -75,7 +70,7 @@ const ShowMetadataDialog: React.FC<ShowMetadataDialogProps> = ({
               variant="outlined"
             />
           </Grid>
-          
+
           <Grid item xs={12} md={4}>
             <TextField
               name="date"
@@ -87,7 +82,7 @@ const ShowMetadataDialog: React.FC<ShowMetadataDialogProps> = ({
               variant="outlined"
             />
           </Grid>
-          
+
           <Grid item xs={12} md={4}>
             <TextField
               name="materials"
@@ -99,7 +94,7 @@ const ShowMetadataDialog: React.FC<ShowMetadataDialogProps> = ({
               variant="outlined"
             />
           </Grid>
-          
+
           <Grid item xs={12} md={4}>
             <TextField
               name="dimensions"
@@ -111,7 +106,7 @@ const ShowMetadataDialog: React.FC<ShowMetadataDialogProps> = ({
               variant="outlined"
             />
           </Grid>
-          
+
           <Grid item xs={12}>
             <TextField
               name="description"
@@ -127,7 +122,7 @@ const ShowMetadataDialog: React.FC<ShowMetadataDialogProps> = ({
           </Grid>
         </Grid>
       </DialogContent>
-      
+
       <DialogActions>
         <Button onClick={onClose} color="primary">
           Cancel

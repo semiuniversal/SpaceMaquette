@@ -49,9 +49,9 @@ router.get('/metadata', async (req, res) => {
     // Return show metadata
     res.json({
       id: show.id,
-      name: show.name,
+      name: show.work_name,
       artist: show.artist,
-      year: show.year,
+      year: show.created,
       materials: show.materials,
       dimensions: show.dimensions,
       backdrop: show.backdrop_type,

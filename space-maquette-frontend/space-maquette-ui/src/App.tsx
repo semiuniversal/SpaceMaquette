@@ -24,9 +24,30 @@ const AppContent: React.FC = () => {
   const [showsDialogOpen, setShowsDialogOpen] = useState(false);
 
   // Artwork data
-  const [title, setTitle] = useState('[show name]');
+  const [workName, setWorkName] = useState('[show name]');
   const [artist, setArtist] = useState('[artist name]');
 
+  // Effect to fetch artwork data
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/metadata');
+        const data = await response.json();
+
+        if (data.work_name) {
+          setWorkName(data.work_name);
+        }
+
+        if (data.artist) {
+          setArtist(data.artist);
+        }
+      } catch (error) {
+        console.error('Failed to fetch metadata:', error);
+      }
+    };
+
+    fetchMetadata();
+  }, []);
   // WebSocket context
   const { position, systemStatus, sendCommand, connected } = useWebSocket();
 
@@ -36,8 +57,8 @@ const AppContent: React.FC = () => {
       try {
         const response = await fetch('http://localhost:3001/api/metadata');
         const data = await response.json();
-        if (data.title && data.artist) {
-          setTitle(data.title);
+        if (data.work_name && data.artist) {
+          setWorkName(data.work_name);
           setArtist(data.artist);
         }
       } catch (error) {
@@ -84,7 +105,7 @@ const AppContent: React.FC = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <Header
-        title={currentMode === 'curator' ? title : 'Debug Mode'}
+        title={currentMode === 'curator' ? workName : 'Debug Mode'} // Changed from title
         artist={currentMode === 'curator' ? artist : ''}
         onMenuToggle={handleMenuToggle}
         emergencyStop={systemStatus.eStop}
