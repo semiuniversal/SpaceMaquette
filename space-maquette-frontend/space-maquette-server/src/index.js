@@ -5,13 +5,10 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
-
-const { setupDatabase } = require('./database/setup');
-const apiRoutes = require('./routes/api');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-
 const io = socketIo(server, {
   cors: {
     origin: '*',
@@ -24,11 +21,26 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Setup database and API routes.
+// Database initialization
+const dbDir = path.join(__dirname, 'data');
+const dbPath = path.join(dbDir, 'space-maquette.db');
+
+// Ensure data directory exists
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Import database setup
+const { setupDatabase } = require('./database/setup');
+
+// Always run setup - it should be modified to check for existing tables
 setupDatabase();
+
+// Setup API routes
+const apiRoutes = require('./routes/api');
 app.use('/api', apiRoutes);
 
-// Register socket event handlers.
+// Register socket event handlers
 const registerSocketHandlers = require('./socketHandlers');
 registerSocketHandlers(io);
 

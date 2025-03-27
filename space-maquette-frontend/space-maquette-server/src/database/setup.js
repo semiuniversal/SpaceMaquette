@@ -25,19 +25,59 @@ const db = new sqlite3.Database(dbPath, (err) => {
 function setupDatabase() {
   console.log('Setting up database tables...');
 
-  // Clean up existing database
-  dropExistingTables();
-
+  // Don't drop tables automatically
   db.serialize(() => {
-    // Create tables
-    createShowsTable();
-    createMapTable();
-    createLightTables();
-    createScansTable();
-    createSettingsTable();
+    // Check if tables already exist
+    db.get(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='settings'",
+      (err, row) => {
+        if (err) {
+          console.error('Error checking database tables:', err.message);
+          return;
+        }
 
-    // Insert default data
-    insertDefaultData();
+        if (row) {
+          console.log('Database tables already exist, skipping setup');
+          return;
+        }
+
+        console.log('Tables do not exist, creating from scratch');
+
+        // First drop existing tables if any
+        dropExistingTables();
+
+        // Then create all tables in the correct order before trying to insert data
+        db.run(`CREATE TABLE shows (
+        id INTEGER PRIMARY KEY,
+        work_name VARCHAR NOT NULL,
+        artist VARCHAR NOT NULL,
+        created TEXT NOT NULL,
+        materials VARCHAR NOT NULL,
+        scale VARCHAR,
+        length VARCHAR,
+        width VARCHAR,
+        height VARCHAR,
+        map INTEGER,
+        lights INTEGER,
+        use_backdrop BOOLEAN DEFAULT 0,
+        backdrop_rgb VARCHAR,
+        backdrop_model VARCHAR,
+        current_scan INTEGER,
+        pano BOOLEAN DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+        // Continue with other table creation
+        createMapTable();
+        createLightTables();
+        createScansTable();
+        createSettingsTable();
+
+        // Only insert data after all tables are created
+        insertDefaultData();
+      }
+    );
   });
 }
 
@@ -156,7 +196,7 @@ function createSettingsTable() {
       system_name VARCHAR NOT NULL,
       firmware_version VARCHAR NOT NULL,
       serial_number VARCHAR NOT NULL,
-      current_show INT NULL,
+      current_show INT NOT NULL DEFAULT 1,
       velocity_x INTEGER NOT NULL,
       velocity_y INTEGER NOT NULL,
       velocity_z INTEGER NOT NULL,
