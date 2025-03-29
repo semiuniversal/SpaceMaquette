@@ -1,6 +1,6 @@
 // motion_sim.js
 const { systemState, updatePosition, updateSystemStatus } = require('./state');
-const logDebug = require('./logger');
+const { logDebug } = require('./logger');
 
 let ioRef = null;
 

@@ -1,0 +1,9 @@
+{
+    "default": false,
+    "motion-solver": false,
+    "motion-sim": false,
+    "state": false,
+    "websocket": false,
+    "database": false,
+    "test-mock": false
+  }

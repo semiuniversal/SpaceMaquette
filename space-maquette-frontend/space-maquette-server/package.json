@@ -6,7 +6,14 @@
     "scripts": {
         "start": "node src/index.js",
         "dev": "nodemon src/index.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "test:unit": "jest tests/unit",
+        "test:integration": "jest tests/integration",
+        "test:safety": "jest tests/integration/safety-features.test.js",
+        "test:watcher": "node scripts/test-watcher.js",
+        "pretest": "node -e \"console.log('Running tests, please wait...')\""
     },
     "dependencies": {
         "body-parser": "^1.20.1",
@@ -19,6 +26,8 @@
         "sqlite3": "^5.1.4"
     },
     "devDependencies": {
+        "cross-env": "^7.0.3",
+        "jest": "^29.7.0",
         "nodemon": "^2.0.20"
     }
 }
